@@ -181,6 +181,25 @@ body{
 .modal-actions button + button{border-left:.5px solid var(--sep);font-weight:600}
 .modal-actions button.danger{color:var(--red)} /* 删除确认按钮为红色 */
 .modal-actions button:active{background:rgba(0,0,0,.05)}
+.modal-textarea{
+  display:block;width:calc(100% - 32px);margin:12px auto 0;
+  height:130px;padding:8px 10px;
+  font-size:12px;line-height:1.5;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  border:none;border-radius:10px;
+  background:rgba(120,120,128,.10);color:var(--text);outline:none;resize:none;
+}
+.modal-textarea:focus{background:rgba(120,120,128,.16)}
+
+/* ==================== 底部：导出 / 导入数据 ==================== */
+.data-actions{display:flex;gap:10px;margin-top:24px}
+.data-btn{
+  flex:1;border:none;border-radius:14px;
+  background:rgba(148,155,165,.10);color:var(--text-2);
+  font-size:14px;font-weight:600;padding:11px;cursor:pointer;
+  transition:transform .15s ease,opacity .15s;font-family:inherit;
+}
+.data-btn:active{transform:scale(.98);opacity:.7}
 
 /* ==================== 轻提示 Toast ==================== */
 .toast{
@@ -207,6 +226,11 @@ body{
 
   <main id="card-list"><!-- 卡片由 JS 根据站点列表渲染 --></main>
 
+  <div class="data-actions">
+    <button type="button" class="data-btn" id="export-btn">导出数据</button>
+    <button type="button" class="data-btn" id="import-btn">导入数据</button>
+  </div>
+
   <p class="footer-hint">点击卡片打开站点并签到 · 长按卡片可拖动排序 · 点击「···」展开详情</p>
 </div>
 
@@ -217,6 +241,7 @@ body{
     <div class="modal-msg" id="modal-msg"></div>
     <input class="modal-input" id="modal-input" type="text" autocomplete="off" spellcheck="false">
     <input class="modal-input hidden" id="modal-input2" type="text" autocomplete="off" spellcheck="false">
+    <textarea class="modal-textarea hidden" id="modal-textarea" spellcheck="false"></textarea>
     <div class="modal-actions">
       <button type="button" id="modal-cancel">取消</button>
       <button type="button" id="modal-ok">保存</button>
@@ -651,13 +676,14 @@ function dragFrame() {
 }
 
 /* ================================================================
- * ⑥ iOS 风格弹窗（新建 / 修改 / 删除确认 共用一个弹窗）
+ * ⑥ iOS 风格弹窗（新建 / 修改 / 删除确认 / 导出导入 共用一个弹窗）
  * ================================================================ */
 const maskEl   = document.getElementById('modal-mask');
 const titleEl  = document.getElementById('modal-title');
 const msgEl    = document.getElementById('modal-msg');
 const inputEl  = document.getElementById('modal-input');
 const input2El = document.getElementById('modal-input2');
+const taEl     = document.getElementById('modal-textarea');
 const okBtn    = document.getElementById('modal-ok');
 let dialogSave = null; // 点击"保存/确认"时执行的回调；返回 false 表示校验未通过，弹窗保持打开
 
@@ -666,7 +692,8 @@ function showModal(opts) {
   titleEl.textContent = opts.title;
   msgEl.textContent   = opts.message || '';
   msgEl.classList.toggle('show', !!opts.message);
-  const inputs = opts.inputs || [];
+  const inputs = opts.textarea ? [] : (opts.inputs || []);
+  const taConf = opts.textarea;
   [inputEl, input2El].forEach((el, i) => {
     const conf = inputs[i];
     el.classList.toggle('hidden', !conf);
@@ -676,17 +703,25 @@ function showModal(opts) {
       el.setAttribute('inputmode', conf.inputmode || 'text');
     }
   });
+  taEl.classList.toggle('hidden', !taConf);
+  if (taConf) {
+    taEl.value = taConf.value || '';
+    taEl.placeholder = taConf.placeholder || '';
+    taEl.readOnly = !!taConf.readonly;
+  }
   okBtn.textContent = opts.confirmLabel || '保存';
   okBtn.classList.toggle('danger', !!opts.danger);
   dialogSave = opts.onSave || null;
   maskEl.classList.add('show');
-  if (inputs.length) setTimeout(() => inputEl.focus(), 240); // 等弹窗动画结束再聚焦
+  if (taConf)             setTimeout(() => { taEl.focus(); taEl.select(); }, 240); // 导出文本全选，方便手动复制
+  else if (inputs.length) setTimeout(() => inputEl.focus(), 240);                  // 等弹窗动画结束再聚焦
 }
 
 function closeModal() {
   maskEl.classList.remove('show');
   inputEl.blur();
   input2El.blur();
+  taEl.blur();
   dialogSave = null;
 }
 
@@ -768,7 +803,102 @@ function openDeleteConfirm(site) {
   });
 }
 
+/* ================================================================
+ * 导出 / 导入数据
+ * ----------------------------------------------------------------
+ * 导出：把站点列表（含顺序）、每个站点的签到日期 / 余额 / 备注 /
+ *       自定义地址、最后使用日期，打包成一份格式化 JSON 文本，
+ *       弹窗展示（自动全选 + 尝试写入剪贴板），复制保存即可。
+ * 导入：粘贴之前导出的 JSON，校验通过后【整体替换】当前数据；
+ *       若备份的日期早于今天，会按"跨天"规则清掉过期签到状态。
+ * ================================================================ */
+function buildExportJSON() {
+  return JSON.stringify({
+    app: 'api-panel',                                        // 标识数据来源，导入时校验用
+    version: 1,
+    exportedAt: new Date().toLocaleString(),
+    sites: sites,                                            // 站点列表（含顺序）
+    state: state,                                            // 各站点的签到 / 余额 / 备注 / 地址
+    lastDate: storageGet(STORAGE_KEY_LASTDATE) || getToday() // 最后使用日期
+  }, null, 2);
+}
+
+// 打开导出弹窗：只读展示 JSON，点"复制"写入剪贴板
+function openExportDialog() {
+  const json = buildExportJSON();
+  showModal({
+    title: '导出数据',
+    textarea: { value: json, readonly: true },
+    confirmLabel: '复制',
+    onSave: () => {
+      taEl.focus();
+      taEl.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}   // 传统方案：选中文本 + execCommand（file:// 下也可用）
+      const fail = () => toast('复制失败，请在文本框中手动全选复制');
+      if (ok) { toast('已复制到剪贴板'); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(taEl.value).then(() => toast('已复制到剪贴板'), fail);
+      } else fail();
+    }
+  });
+}
+
+// 打开导入弹窗：粘贴 JSON，校验通过后整体替换当前数据
+function openImportDialog() {
+  showModal({
+    title: '导入数据',
+    textarea: { value: '', placeholder: '粘贴之前导出的 JSON 文本…' },
+    confirmLabel: '导入',
+    onSave: () => {
+      const raw = taEl.value.trim();
+      if (!raw) { toast('请先粘贴 JSON 文本'); return false; }
+      let data;
+      try { data = JSON.parse(raw); }
+      catch (e) { toast('JSON 格式错误，无法导入'); return false; }
+      if (!data || typeof data !== 'object' || data.app !== 'api-panel' ||
+          !Array.isArray(data.sites) || !data.state || typeof data.state !== 'object') {
+        toast('数据结构不对，请确认是本应用导出的 JSON');
+        return false;
+      }
+      // 清洗站点列表：必须有 id/name/url，id 重复的只保留第一个
+      const seen = new Set();
+      const clean = [];
+      data.sites.forEach(s => {
+        if (s && s.id && s.name && !seen.has(String(s.id))) {
+          seen.add(String(s.id));
+          clean.push({ id: String(s.id), name: String(s.name), url: normalizeURL(String(s.url || '')) });
+        }
+      });
+      if (!clean.length) { toast('没有可导入的站点'); return false; }
+      // 整体替换站点列表与状态（状态中不属于站点列表的条目丢弃）
+      sites = clean;
+      const known = new Set(sites.map(s => s.id));
+      state = {};
+      Object.keys(data.state).forEach(k => {
+        if (!known.has(k)) return;
+        const r = data.state[k] || {};
+        state[k] = {
+          signedDate: r.signedDate || null,
+          balance:    String(r.balance || ''),
+          note:       String(r.note || ''),
+          url:        String(r.url || '')
+        };
+      });
+      expanded.clear();
+      saveSites();
+      saveState();
+      storageSet(STORAGE_KEY_LASTDATE, data.lastDate || getToday());
+      dailyReset(); // 若导入的是更早的备份，按跨天规则清掉过期签到
+      render();
+      toast('导入成功，共 ' + sites.length + ' 个站点');
+    }
+  });
+}
+
 document.getElementById('add-btn').addEventListener('click', openCreateDialog);
+document.getElementById('export-btn').addEventListener('click', openExportDialog);
+document.getElementById('import-btn').addEventListener('click', openImportDialog);
 
 okBtn.addEventListener('click', () => {
   if (!dialogSave) { closeModal(); return; }
