@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- viewport-fit=cover：让页面延伸到刘海屏安全区，配合 CSS 里的 env(safe-area-inset-*) 使用 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>存</title>
+
+<!-- ==================== PWA / iOS「添加到主屏幕」meta 标签 ==================== -->
+<!-- 允许网页以 standalone 模式运行：Safari 添加到主屏幕后隐藏地址栏和工具栏，看起来像原生 App -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- 状态栏样式：black-translucent 让页面内容延伸到状态栏下方（需自行用安全区 padding 避让） -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- 添加到主屏幕后显示的 App 名称 -->
+<meta name="apple-mobile-web-app-title" content="存">
+<!-- 状态栏 / 浏览器主题色 -->
+<meta name="theme-color" content="#f3f5f8">
+<!-- manifest 与图标由 JS 动态生成（data URL 内联，单文件零外部依赖），见 script 中的 initPWA() -->
+<link rel="manifest" id="manifest-link">
+<link rel="apple-touch-icon" id="apple-touch-icon" sizes="180x180">
+<link rel="icon" id="favicon">
+
+<style>
+/* ==================== 主题变量（整体淡灰色调，降饱和、轻量感） ==================== */
+:root{
+  --bg:      #f3f5f8;                 /* 页面浅灰背景 */
+  --card:    #ffffff;                 /* 卡片纯白 */
+  --text:    #454b54;                 /* 主文字（淡灰，柔和不刺眼） */
+  --text-2:  #949ba5;                 /* 次要文字 */
+  --text-3:  #c3c9d1;                 /* 占位文字 */
+  --blue:    #6b93b8;                 /* 灰蓝（操作按钮，降饱和） */
+  --green:   #5fae72;                 /* 柔和绿（已签到） */
+  --red:     #dd7a72;                 /* 柔和红（取消签到） */
+  --sep:     rgba(60,60,67,.08);      /* 发丝分割线（极淡） */
+  --radius:  20px;                    /* 卡片圆角（大圆角，弱化硬朗感） */
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%;background:var(--bg)}
+body{
+  min-height:100%;
+  /* ui-rounded：iOS 上自动使用 SF 圆体，数字与英文更柔和；其余平台回退到系统字体 */
+  font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  /* 极浅的顶部渐变，让背景不再是"一块死板灰" */
+  background:linear-gradient(180deg,#eef2f7 0%,#f3f5f8 380px,#f3f5f8 100%);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  touch-action:manipulation; /* 去掉 iOS 上双击缩放/点击延迟 */
+}
+.app{max-width:640px;margin:0 auto;padding:0 16px calc(44px + env(safe-area-inset-bottom,0px))}
+
+/* ==================== 顶部大标题 ==================== */
+.header{padding-top:calc(env(safe-area-inset-top,0px) + 30px);margin-bottom:20px}
+.large-title{font-size:32px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.subtitle{margin-top:7px;font-size:14px;color:var(--text-2);letter-spacing:.1px}
+
+/* ==================== 卡片列表 ==================== */
+#card-list{display:flex;flex-direction:column;gap:14px;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  /* 两层弥散阴影代替一层硬阴影：更轻、更柔、有空气感 */
+  box-shadow:0 2px 6px rgba(30,45,62,.04),0 14px 34px rgba(30,45,62,.055);
+  overflow:hidden;
+}
+/* 卡片主行：文字标题 + 域名 | 签到状态 | ··· 按钮 */
+.card-main{
+  display:flex;align-items:center;gap:12px;
+  padding:15px 16px;cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+  transition:background .18s;
+}
+.card-main:active{background:rgba(30,45,62,.035)} /* iOS 按压反馈（很淡） */
+.site-info{flex:1;min-width:0}
+.site-name{font-size:17px;font-weight:600}
+.site-url{margin-top:2px;font-size:12px;color:var(--text-2);word-break:break-all}
+.status{flex-shrink:0;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px}
+.status.signed{color:var(--green);background:rgba(95,174,114,.12)}
+.status.unsigned{color:var(--text-2);background:rgba(148,155,165,.10);font-weight:500}
+.more-btn{
+  flex-shrink:0;width:32px;height:32px;border:none;border-radius:50%;
+  background:#eef1f5;color:#a7aeb8;
+  font-size:15px;font-weight:700;letter-spacing:1px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .28s ease,background .18s;
+  padding-bottom:5px; /* 让 ··· 视觉上居中 */
+}
+.more-btn:active{background:#e7ebf0}
+.card.expanded .more-btn{transform:rotate(90deg)} /* 展开时按钮旋转 90°，作为状态提示 */
+
+/* ==================== 卡片详情区（max-height 过渡实现平滑展开/收起） ==================== */
+.card-details{max-height:0;overflow:hidden;transition:max-height .32s ease}
+.details-inner{border-top:.5px solid var(--sep);padding:5px 16px 18px}
+.detail-row{display:flex;align-items:center;gap:10px;min-height:46px}
+.detail-row + .detail-row{border-top:.5px solid var(--sep)}
+.detail-label{flex-shrink:0;font-size:15px;color:var(--text-2)}
+.detail-value{flex:1;font-size:15px;word-break:break-all}
+.detail-value.empty{color:var(--text-3)}
+.row-btn{
+  flex-shrink:0;border:none;border-radius:999px;
+  background:rgba(107,147,184,.13);color:var(--blue);
+  font-size:13px;font-weight:600;padding:6px 14px;
+  cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
+}
+.row-btn:active{transform:scale(.94);opacity:.7} /* 轻弹性按压反馈 */
+.unsign-btn{
+  width:100%;margin-top:12px;border:none;border-radius:14px;
+  background:rgba(221,122,114,.10);color:var(--red);
+  font-size:15px;font-weight:600;padding:12px;
+  cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
+}
+.unsign-btn:active{transform:scale(.98);opacity:.7}
+
+/* 空列表提示 */
+.empty-tip{padding:22px 16px;text-align:center;color:var(--text-2);font-size:14px}
+
+/* 底部提示 */
+.footer-hint{margin-top:22px;text-align:center;font-size:12px;color:var(--text-3)}
+
+/* ==================== iOS 风格弹窗（修改地址 / 余额 / 备注） ==================== */
+.modal-mask{
+  position:fixed;inset:0;z-index:100;
+  background:rgba(45,55,70,.35);
+  display:flex;align-items:center;justify-content:center;padding:32px;
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.modal-mask.show{opacity:1;pointer-events:auto}
+.modal{
+  width:284px;text-align:center;
+  background:rgba(250,250,252,.96);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  border-radius:18px;overflow:hidden;
+  transform:scale(.92);transition:transform .28s cubic-bezier(.34,1.4,.64,1); /* 微弹动画 */
+}
+.modal-mask.show .modal{transform:scale(1)}
+.modal-title{font-size:16px;font-weight:600;padding:18px 16px 0}
+.modal-input{
+  display:block;width:calc(100% - 32px);margin:10px auto 16px;
+  padding:8px 10px;font-size:16px;font-family:inherit; /* 16px 可避免 iOS 聚焦时页面缩放 */
+  border:none;border-radius:10px;
+  background:rgba(120,120,128,.10);color:var(--text);outline:none;
+}
+.modal-input:focus{background:rgba(120,120,128,.16)}
+.modal-actions{display:flex;border-top:.5px solid var(--sep)}
+.modal-actions button{
+  flex:1;padding:12px;font-size:16px;font-family:inherit;
+  background:transparent;border:none;color:var(--blue);cursor:pointer;
+}
+.modal-actions button + button{border-left:.5px solid var(--sep);font-weight:600}
+.modal-actions button:active{background:rgba(0,0,0,.05)}
+
+/* ==================== 轻提示 Toast ==================== */
+.toast{
+  position:fixed;left:50%;bottom:calc(44px + env(safe-area-inset-bottom,0px));z-index:200;
+  transform:translateX(-50%) translateY(10px);
+  background:rgba(62,68,76,.92);color:#fff;
+  font-size:14px;padding:9px 18px;border-radius:999px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <h1 class="large-title">存</h1>
+    <p class="subtitle" id="subtitle">—</p>
+  </header>
+
+  <main id="card-list"><!-- 卡片由 JS 根据 sites 数组渲染 --></main>
+
+  <p class="footer-hint">点击卡片打开站点并签到 · 点击「···」展开详情</p>
+</div>
+
+<!-- iOS 风格弹窗：修改站点地址 / 余额 / 备注 -->
+<div class="modal-mask" id="modal-mask">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">修改</div>
+    <input class="modal-input" id="modal-input" type="text" autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button type="button" id="modal-cancel">取消</button>
+      <button type="button" id="modal-ok">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ================================================================
+ * ① 站点配置区 ——【在这里增删你的站点】
+ * ----------------------------------------------------------------
+ * 新增站点：往数组里加一条 { id, name, url }，例如：
+ *   { id: "site3", name: "新站点", url: "https://example.com" }
+ * 删除站点：删掉对应整行即可（它留在 localStorage 里的旧数据不会
+ *           自动清理，但界面不会再显示，不影响使用）。
+ * 可选字段（可写可不写）：
+ *   balance —— 初始余额，如 "12.50"；不填界面显示 "—"
+ *   note    —— 初始备注文字；不填界面显示 "—"
+ * 注意 1：id 必须唯一，它是 localStorage 中数据的主键。
+ * 注意 2：站点地址支持在界面里随时修改（详情区的「地址」行），
+ *         修改结果保存在 localStorage 并优先于这里的 url；
+ *         在弹窗中清空并保存即可恢复为这里的默认地址。
+ * ================================================================ */
+const sites = [
+  { id: "site1", name: "清酒", url: "https://qingjiu.nemodesk.top" },
+  { id: "site2", name: "Noir",  url: "https://noir.blacknoir.cn" }
+];
+
+/* ================================================================
+ * ② 存储层（localStorage，带内存兜底）
+ * ----------------------------------------------------------------
+ * localStorage 中的数据结构：
+ *   apiPanel.lastDate -> "2026-10-24"        最后一次使用的日期
+ *   apiPanel.state    -> 每个站点的状态：
+ *        {
+ *          "site1": { signedDate: "2026-10-24" | null,  最近一次签到日期
+ *                     balance:   "12.50",               余额
+ *                     note:      "备注文字",             备注
+ *                     url:       "" },                  界面里修改过的地址
+ *                                                       （"" 表示用配置默认值）
+ *          "site2": { ... }
+ *        }
+ * 站点是否"今日已签"由 signedDate === 今天 推导得出。
+ * ================================================================ */
+const STORAGE_KEY_STATE    = 'apiPanel.state';
+const STORAGE_KEY_LASTDATE = 'apiPanel.lastDate';
+
+// 隐私模式 / 沙盒环境下 localStorage 可能不可用，降级为内存对象（页面关闭即丢失）
+const memoryStore = {};
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch (e) { return key in memoryStore ? memoryStore[key] : null; }
+}
+function storageSet(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { memoryStore[key] = value; }
+}
+
+// 全部站点状态（内存中的工作副本），任何修改后调用 saveState() 持久化
+let state = {};
+
+function loadState() {
+  try { state = JSON.parse(storageGet(STORAGE_KEY_STATE)) || {}; }
+  catch (e) { state = {}; }
+  if (typeof state !== 'object' || state === null) state = {};
+}
+function saveState() {
+  storageSet(STORAGE_KEY_STATE, JSON.stringify(state));
+}
+
+// 读取某个站点的状态记录；没有则按默认值创建
+function getStateOf(siteId) {
+  if (!state[siteId]) state[siteId] = { signedDate: null, balance: '', note: '', url: '' };
+  return state[siteId];
+}
+
+// 站点当前生效的地址：界面里修改过的优先，否则用配置里的默认地址
+function getSiteURL(site) {
+  const rec = state[site.id];
+  return (rec && rec.url) ? rec.url : site.url;
+}
+
+// 地址补全：没有 http(s):// 前缀时自动加上 https://
+function normalizeURL(u) {
+  return /^https?:\/\//i.test(u) ? u : 'https://' + u;
+}
+
+/* ================================================================
+ * ③ 每日自动刷新逻辑（关键）
+ * ----------------------------------------------------------------
+ * 页面每次加载（以及从后台切回前台）时执行：
+ *  - 取出 localStorage 里保存的"最后使用日期"；
+ *  - 若与今天（本地时区的 YYYY-MM-DD）不一致，说明已经跨天
+ *    （过了凌晨 12 点），自动清空所有站点的签到状态，并把该日期
+ *    更新为今天。这样每天第一次打开面板，所有卡片都恢复为"未签"。
+ * ================================================================ */
+function getToday() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+function dailyReset() {
+  const today = getToday();
+  if (storageGet(STORAGE_KEY_LASTDATE) !== today) {
+    // 跨天了：清空所有站点的签到状态
+    Object.keys(state).forEach(id => { state[id].signedDate = null; });
+    storageSet(STORAGE_KEY_LASTDATE, today);
+    saveState();
+    return true; // 有变化，需要重绘界面
+  }
+  return false;
+}
+
+// 某条记录是否为"今日已签"
+function isSigned(rec) { return !!rec.signedDate && rec.signedDate === getToday(); }
+
+/* ================================================================
+ * ④ 渲染
+ * ================================================================ */
+const listEl     = document.getElementById('card-list');
+const subtitleEl = document.getElementById('subtitle');
+const expanded   = new Set(); // 当前处于展开详情状态的站点 id
+
+// 防 HTML 注入：用户输入（地址、备注等）渲染前先转义
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+  ));
+}
+// 站点域名小字：去掉协议头和末尾斜杠，纯展示用
+function shortURL(u) { return u.replace(/^https?:\/\//, '').replace(/\/$/, ''); }
+
+function rowHTML(label, value, field) {
+  const empty = value === undefined || value === null || String(value).trim() === '';
+  return '<div class="detail-row">' +
+           '<span class="detail-label">' + label + '：</span>' +
+           '<span class="detail-value' + (empty ? ' empty' : '') + '">' + (empty ? '—' : esc(value)) + '</span>' +
+           '<button type="button" class="row-btn" data-field="' + field + '">修改</button>' +
+         '</div>';
+}
+
+function render() {
+  listEl.innerHTML = '';
+
+  if (sites.length === 0) {
+    listEl.innerHTML = '<div class="card"><div class="empty-tip">还没有站点，请在代码顶部 sites 数组中添加</div></div>';
+  }
+
+  for (const site of sites) {
+    const rec    = getStateOf(site.id);
+    const signed = isSigned(rec);
+    const url    = getSiteURL(site); // 当前生效地址（可能被界面修改过）
+
+    const card = document.createElement('div');
+    card.className = 'card' + (expanded.has(site.id) ? ' expanded' : '');
+    card.dataset.id = site.id;
+
+    // —— 主行：文字标题 + 域名 | 签到状态 | ··· 按钮 ——
+    const main = document.createElement('div');
+    main.className = 'card-main';
+    main.innerHTML =
+      '<div class="site-info">' +
+        '<div class="site-name">' + esc(site.name) + '</div>' +
+        '<div class="site-url">' + esc(shortURL(url)) + '</div>' +
+      '</div>' +
+      (signed
+        ? '<div class="status signed">✓已签</div>'
+        : '<div class="status unsigned">未签</div>') +
+      '<button type="button" class="more-btn" aria-label="展开或收起详情">···</button>';
+    card.appendChild(main);
+
+    // —— 详情区：地址 / 余额 / 备注 / 取消签到 ——
+    const details = document.createElement('div');
+    details.className = 'card-details';
+    const inner = document.createElement('div');
+    inner.className = 'details-inner';
+    inner.innerHTML =
+      rowHTML('地址', url, 'url') +
+      rowHTML('余额', rec.balance, 'balance') +
+      rowHTML('备注', rec.note, 'note') +
+      // 只有"今日已签"的站点才显示取消签到按钮
+      (signed ? '<button type="button" class="unsign-btn">取消今日签到</button>' : '');
+    details.appendChild(inner);
+    card.appendChild(details);
+
+    listEl.appendChild(card);
+
+    // 页面重绘时，原本已展开的卡片直接设置高度（跳过动画，避免闪动）
+    if (expanded.has(site.id)) {
+      details.style.transition = 'none';
+      details.style.maxHeight  = inner.scrollHeight + 'px';
+      void details.offsetHeight; // 强制浏览器立即应用无动画高度
+      details.style.transition = '';
+    }
+  }
+
+  // 副标题：日期 + 签到统计
+  const d = new Date();
+  const weeks = ['日','一','二','三','四','五','六'];
+  const signedCount = sites.filter(s => isSigned(getStateOf(s.id))).length;
+  subtitleEl.textContent =
+    (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + weeks[d.getDay()] +
+    ' · 共 ' + sites.length + ' 个站点，已签 ' + signedCount + ' 个';
+}
+
+/* ================================================================
+ * ⑤ 交互逻辑
+ * ================================================================ */
+
+// 事件统一委托到列表容器上
+listEl.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const site = sites.find(s => s.id === card.dataset.id);
+  if (!site) return;
+
+  // （a）点击「···」：展开 / 收起详情（不触发签到）
+  if (e.target.closest('.more-btn')) { toggleExpand(card); return; }
+
+  // （b）点击「修改」：弹出修改弹窗（地址 / 余额 / 备注）
+  const editBtn = e.target.closest('.row-btn');
+  if (editBtn) { openEditDialog(site, editBtn.dataset.field); return; }
+
+  // （c）点击「取消今日签到」：清除今日签到状态
+  if (e.target.closest('.unsign-btn')) { unsignSite(site.id); return; }
+
+  // （d）详情区的其余空白位置：什么都不做
+  if (e.target.closest('.card-details')) return;
+
+  // （e）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
+  signSite(site);
+});
+
+// 展开 / 收起详情：通过把 max-height 设为内容实际高度来实现平滑过渡
+function toggleExpand(card) {
+  const id      = card.dataset.id;
+  const details = card.querySelector('.card-details');
+  if (expanded.has(id)) {
+    expanded.delete(id);
+    card.classList.remove('expanded');
+    details.style.maxHeight = '0px'; // 平滑收起
+  } else {
+    expanded.add(id);
+    card.classList.add('expanded');
+    details.style.maxHeight = details.scrollHeight + 'px'; // 平滑展开
+  }
+}
+
+/* 签到：先尝试新窗口打开站点（使用当前生效地址），再立刻把
+ * signedDate 写成今天并刷新 UI。即使弹窗被浏览器拦截，签到状态
+ * 也已生效（按需求：点击即标记）。 */
+function signSite(site) {
+  const win = window.open(getSiteURL(site), '_blank');
+  if (win) win.opener = null; // 安全：切断新窗口对本页面的引用
+  else toast('弹窗被拦截，请允许弹出窗口后重试');
+
+  const rec = getStateOf(site.id);
+  rec.signedDate = getToday(); // 标记今日已签（取消签到时会被清空）
+  saveState();                 // 日期 + 状态写入 localStorage
+  render();                    // 更新 UI：显示绿色 ✓已签
+}
+
+// 取消今日签到：清除 signedDate，UI 恢复"未签"
+function unsignSite(siteId) {
+  getStateOf(siteId).signedDate = null;
+  saveState();
+  render();
+  toast('已取消今日签到');
+}
+
+/* ================================================================
+ * ⑥ iOS 风格修改弹窗（站点地址 / 余额 / 备注）
+ * ================================================================ */
+const maskEl  = document.getElementById('modal-mask');
+const inputEl = document.getElementById('modal-input');
+const titleEl = document.getElementById('modal-title');
+let dialogSave = null; // 点击"保存"时执行的回调
+
+function openEditDialog(site, field) {
+  const rec = getStateOf(site.id);
+  const isURL     = field === 'url';
+  const isBalance = field === 'balance';
+
+  titleEl.textContent = isURL ? '修改站点地址' : isBalance ? '修改余额' : '修改备注';
+  inputEl.value = isURL ? getSiteURL(site) : isBalance ? rec.balance : rec.note;
+  inputEl.placeholder = isURL ? 'https://…' : isBalance ? '输入新余额' : '输入备注';
+  inputEl.setAttribute('inputmode', isURL ? 'url' : isBalance ? 'decimal' : 'text');
+
+  dialogSave = newValue => {
+    const v = newValue.trim();
+    // 【修改逻辑】把新值写入该站点记录并持久化到 localStorage
+    if (isURL) {
+      // 地址留空保存 = 恢复为 sites 配置里的默认地址
+      rec.url = v === '' ? '' : normalizeURL(v);
+    } else if (isBalance) {
+      rec.balance = v;
+    } else {
+      rec.note = v;
+    }
+    saveState();
+    render();
+    toast(isURL && v === '' ? '已恢复默认地址' : '已保存');
+  };
+
+  maskEl.classList.add('show');
+  setTimeout(() => inputEl.focus(), 240); // 等弹窗动画结束再聚焦，避免 iOS 键盘顶起时动画异常
+}
+
+function closeEditDialog() {
+  maskEl.classList.remove('show');
+  inputEl.blur();
+  dialogSave = null;
+}
+
+document.getElementById('modal-ok').addEventListener('click', () => {
+  if (dialogSave) dialogSave(inputEl.value);
+  closeEditDialog();
+});
+document.getElementById('modal-cancel').addEventListener('click', closeEditDialog);
+maskEl.addEventListener('click', e => { if (e.target === maskEl) closeEditDialog(); }); // 点遮罩关闭
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter')  document.getElementById('modal-ok').click(); // 回车 = 保存
+  if (e.key === 'Escape') closeEditDialog();                            // Esc = 取消
+});
+
+/* ==================== 轻提示 ==================== */
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+/* ================================================================
+ * ⑦ PWA 初始化：canvas 动态生成图标 + 内联 manifest（单文件方案）
+ * ----------------------------------------------------------------
+ * Safari「添加到主屏幕」主要依赖上方 apple-* meta 标签；这里用
+ * canvas 画一个 180×180 图标（data URL），manifest 也以 data URL
+ * 内联，做到零外部文件。
+ * 若想换成自己的图标：把 <link id="apple-touch-icon"> 的 href 改成
+ * 图片地址即可（建议 180×180 PNG；iOS 对 data URL 图标支持不一，
+ * 若主屏幕图标显示为页面截图，换成同目录下的真实图片文件最稳妥）。
+ * ================================================================ */
+function initPWA() {
+  try {
+    // 1. 画图标：淡灰蓝渐变底 + "存" 字
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 180, 180);
+    g.addColorStop(0, '#8ca4ba');
+    g.addColorStop(1, '#b9c9d8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 180, 180);
+    ctx.fillStyle = 'rgba(255,255,255,.97)';
+    ctx.font = '600 92px -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(60,80,100,.22)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText('存', 90, 96);
+
+    const iconURL = canvas.toDataURL('image/png');
+    document.getElementById('apple-touch-icon').href = iconURL;
+    document.getElementById('favicon').href = iconURL;
+
+    // 2. 内联 manifest（data URL）
+    const manifest = {
+      name: '存',
+      short_name: '存',
+      display: 'standalone',
+      start_url: '.',
+      background_color: '#f3f5f8',
+      theme_color: '#f3f5f8',
+      icons: [{ src: iconURL, sizes: '180x180', type: 'image/png' }]
+    };
+    document.getElementById('manifest-link').href =
+      'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+  } catch (e) { /* 图标生成失败不影响主功能 */ }
+}
+
+/* ==================== 启动流程 ==================== */
+loadState();    // 1. 读取 localStorage 里的站点状态
+dailyReset();   // 2. 每日自动刷新（关键）：跨天则清空所有签到状态
+render();       // 3. 渲染卡片列表
+initPWA();      // 4. 生成 PWA 图标与 manifest
+
+// 面板一直开着跨过凌晨的情况：从后台切回前台时再检查一次日期
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && dailyReset()) render();
+});
+</script>
+</body>
+</html>
