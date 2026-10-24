@@ -108,8 +108,8 @@ body{
 
 /* ==================== 卡片详情区（max-height 过渡实现平滑展开/收起） ==================== */
 .card-details{max-height:0;overflow:hidden;transition:max-height .32s ease}
-.details-inner{border-top:.5px solid var(--sep);padding:5px 16px 18px}
-.detail-row{display:flex;align-items:center;gap:10px;min-height:46px}
+.details-inner{border-top:.5px solid var(--sep);padding:4px 16px 16px}
+.detail-row{display:flex;align-items:center;gap:10px;min-height:44px}
 .detail-row + .detail-row{border-top:.5px solid var(--sep)}
 .detail-label{flex-shrink:0;font-size:15px;color:var(--text-2)}
 .detail-value{flex:1;font-size:15px;word-break:break-all}
@@ -121,20 +121,45 @@ body{
   cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
 }
 .row-btn:active{transform:scale(.94);opacity:.7} /* 轻弹性按压反馈 */
-.unsign-btn{
-  width:100%;margin-top:12px;border:none;border-radius:14px;
-  background:rgba(221,122,114,.10);color:var(--red);
-  font-size:15px;font-weight:600;padding:12px;
+
+/* ---- 密钥区块：小标题 + 紧凑列表，视觉上独立于上面两个 ---- */
+.keys-block{margin-top:6px;border-top:.5px solid var(--sep)}
+.keys-head{display:flex;align-items:center;justify-content:space-between;min-height:38px}
+.keys-title{font-size:13px;font-weight:600;color:var(--text-2);letter-spacing:.3px}
+.keys-add{
+  border:none;background:transparent;color:var(--blue);
+  font-size:13px;font-weight:600;padding:5px 8px;border-radius:8px;
+  cursor:pointer;transition:opacity .15s;font-family:inherit;
+}
+.keys-add:active{opacity:.6}
+.key-row{display:flex;align-items:center;gap:8px;padding:5px 0;min-height:40px}
+.key-row + .key-row{border-top:.5px solid var(--sep)}
+.key-info{flex:1;min-width:0}
+.key-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.key-masked{
+  font-size:12px;color:var(--text-2);margin-top:1px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.key-btn{
+  flex-shrink:0;border:none;border-radius:999px;
+  font-size:12px;font-weight:600;padding:4px 11px;
   cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
 }
-.unsign-btn:active{transform:scale(.98);opacity:.7}
-.del-btn{
-  width:100%;margin-top:8px;border:none;border-radius:14px;
-  background:rgba(148,155,165,.10);color:var(--red);
-  font-size:15px;font-weight:600;padding:12px;
+.key-btn.copy{background:rgba(107,147,184,.13);color:var(--blue)}
+.key-btn.del{background:rgba(221,122,114,.10);color:var(--red)}
+.key-btn:active{transform:scale(.94);opacity:.7}
+
+/* ---- 详情区底部操作：取消签到 / 删除站点 并排，节省纵向空间 ---- */
+.detail-actions{display:flex;gap:8px;margin-top:10px}
+.act-btn{
+  flex:1;border:none;border-radius:14px;
+  font-size:14px;font-weight:600;padding:11px;
   cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
 }
-.del-btn:active{transform:scale(.98);opacity:.7}
+.act-btn.warn{background:rgba(221,122,114,.10);color:var(--red)}
+.act-btn.danger{background:rgba(148,155,165,.10);color:var(--red)}
+.act-btn:active{transform:scale(.98);opacity:.7}
 
 /* 空列表提示 */
 .empty-tip{padding:22px 16px;text-align:center;color:var(--text-2);font-size:14px}
@@ -142,7 +167,8 @@ body{
 /* 底部提示 */
 .footer-hint{margin-top:22px;text-align:center;font-size:12px;color:var(--text-3)}
 
-/* ==================== iOS 风格弹窗（新建 / 修改 / 删除确认 共用） ==================== */
+/* ==================== iOS 风格弹窗（新建 / 修改 / 添加密钥 / 确认 / 导出导入 共用） ==================== */
+/* 所有弹窗统一只使用单行 <input>，界面整洁 */
 .modal-mask{
   position:fixed;inset:0;z-index:100;
   background:rgba(45,55,70,.35);
@@ -171,7 +197,7 @@ body{
   background:rgba(120,120,128,.10);color:var(--text);outline:none;
 }
 .modal-input:focus{background:rgba(120,120,128,.16)}
-.modal-input + .modal-input{margin-top:8px} /* 新建模式下的第二个输入框 */
+.modal-input + .modal-input{margin-top:8px} /* 需要两个输入框的弹窗（新建站点 / 添加密钥） */
 .hidden{display:none}
 .modal-actions{display:flex;margin-top:16px;border-top:.5px solid var(--sep)}
 .modal-actions button{
@@ -181,15 +207,6 @@ body{
 .modal-actions button + button{border-left:.5px solid var(--sep);font-weight:600}
 .modal-actions button.danger{color:var(--red)} /* 删除确认按钮为红色 */
 .modal-actions button:active{background:rgba(0,0,0,.05)}
-.modal-textarea{
-  display:block;width:calc(100% - 32px);margin:12px auto 0;
-  height:130px;padding:8px 10px;
-  font-size:12px;line-height:1.5;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  border:none;border-radius:10px;
-  background:rgba(120,120,128,.10);color:var(--text);outline:none;resize:none;
-}
-.modal-textarea:focus{background:rgba(120,120,128,.16)}
 
 /* ==================== 底部：导出 / 导入数据 ==================== */
 .data-actions{display:flex;gap:10px;margin-top:24px}
@@ -234,14 +251,13 @@ body{
   <p class="footer-hint">点击卡片打开站点并签到 · 长按卡片可拖动排序 · 点击「···」展开详情</p>
 </div>
 
-<!-- iOS 风格弹窗：新建站点 / 修改地址、余额、备注 / 删除确认 -->
+<!-- iOS 风格弹窗：所有弹窗共用，只包含单行 <input>，不再有 textarea -->
 <div class="modal-mask" id="modal-mask">
   <div class="modal">
     <div class="modal-title" id="modal-title">修改</div>
     <div class="modal-msg" id="modal-msg"></div>
-    <input class="modal-input" id="modal-input" type="text" autocomplete="off" spellcheck="false">
+    <input class="modal-input hidden" id="modal-input" type="text" autocomplete="off" spellcheck="false">
     <input class="modal-input hidden" id="modal-input2" type="text" autocomplete="off" spellcheck="false">
-    <textarea class="modal-textarea hidden" id="modal-textarea" spellcheck="false"></textarea>
     <div class="modal-actions">
       <button type="button" id="modal-cancel">取消</button>
       <button type="button" id="modal-ok">保存</button>
@@ -260,9 +276,8 @@ body{
  * 下面的数组只作为【第一次打开页面】时的初始站点列表。
  * 之后的一切管理——新建、删除、长按拖动排序——都在界面上完成，
  * 并自动保存到 localStorage 的 apiPanel.sites，优先于这里的配置。
- * 可选字段 balance / note 同样只在初始化时生效。
- * 想重新以这里的配置初始化：删除 localStorage 中的 apiPanel.sites
- * （或在控制台执行 localStorage.removeItem('apiPanel.sites')）后刷新。
+ * 备注 / 密钥在卡片详情里维护；想重新以这里的配置初始化：
+ * 删除 localStorage 中的 apiPanel.sites 后刷新页面即可。
  * 注意：id 必须唯一，它是 localStorage 中数据的主键；界面上新建的
  * 站点会自动生成不冲突的 id。
  * ================================================================ */
@@ -291,11 +306,13 @@ let sites = loadSites() || [
  *   apiPanel.lastDate -> "2026-10-24"        最后一次使用的日期
  *   apiPanel.state    -> 每个站点的状态：
  *        {
- *          "site1": { signedDate: "2026-10-24" | null,  最近一次签到日期
- *                     balance:   "12.50",               余额
- *                     note:      "备注文字",             备注
- *                     url:       "" },                  界面里修改过的地址
- *                                                       （"" 表示用列表里的地址）
+ *          "site1": {
+ *            signedDate: "2026-10-24" | null,       最近一次签到日期
+ *            note:       "备注文字",                 备注
+ *            url:        "",                        界面里修改过的地址（"" 用默认）
+ *            keys:       [ { name:"密钥名称",        该站点的密钥列表
+ *                            value:"sk-xxxx" } ]
+ *          },
  *          "site2": { ... }
  *        }
  * 站点是否"今日已签"由 signedDate === 今天 推导得出。
@@ -324,6 +341,16 @@ function loadState() {
   try { state = JSON.parse(storageGet(STORAGE_KEY_STATE)) || {}; }
   catch (e) { state = {}; }
   if (typeof state !== 'object' || state === null) state = {};
+  // 规范化旧数据：只保留已知字段（顺带清掉已废弃的 balance 余额字段）
+  Object.keys(state).forEach(k => {
+    const r = state[k] || {};
+    state[k] = {
+      signedDate: r.signedDate || null,
+      note:       r.note || '',
+      url:        r.url || '',
+      keys:       Array.isArray(r.keys) ? r.keys : []
+    };
+  });
 }
 function saveState() {
   storageSet(STORAGE_KEY_STATE, JSON.stringify(state));
@@ -331,7 +358,7 @@ function saveState() {
 
 // 读取某个站点的状态记录；没有则按默认值创建
 function getStateOf(siteId) {
-  if (!state[siteId]) state[siteId] = { signedDate: null, balance: '', note: '', url: '' };
+  if (!state[siteId]) state[siteId] = { signedDate: null, note: '', url: '', keys: [] };
   return state[siteId];
 }
 
@@ -383,7 +410,7 @@ const listEl     = document.getElementById('card-list');
 const subtitleEl = document.getElementById('subtitle');
 const expanded   = new Set(); // 当前处于展开详情状态的站点 id
 
-// 防 HTML 注入：用户输入（地址、备注等）渲染前先转义
+// 防 HTML 注入：用户输入（地址、备注、密钥等）渲染前先转义
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => (
     { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
@@ -392,12 +419,42 @@ function esc(s) {
 // 站点域名小字：去掉协议头和末尾斜杠，纯展示用
 function shortURL(u) { return u.replace(/^https?:\/\//, '').replace(/\/$/, ''); }
 
+// 密钥打码展示：保留首尾各几位，中间用 *** 代替（如 sk-ab***7890）
+function maskKey(v) {
+  const s = String(v);
+  if (s.length <= 8) return s.slice(0, 2) + '***' + s.slice(-2);
+  return s.slice(0, 5) + '***' + s.slice(-4);
+}
+
 function rowHTML(label, value, field) {
   const empty = value === undefined || value === null || String(value).trim() === '';
   return '<div class="detail-row">' +
            '<span class="detail-label">' + label + '：</span>' +
            '<span class="detail-value' + (empty ? ' empty' : '') + '">' + (empty ? '—' : esc(value)) + '</span>' +
            '<button type="button" class="row-btn" data-field="' + field + '">修改</button>' +
+         '</div>';
+}
+
+// 密钥区块：小标题（含数量）+ 添加按钮 + 紧凑的密钥行列表
+function keysSectionHTML(site, rec) {
+  const keys = Array.isArray(rec.keys) ? rec.keys : [];
+  const rows = keys.map((k, i) =>
+    '<div class="key-row">' +
+      '<div class="key-info">' +
+        '<div class="key-name">' + esc(k.name) + '</div>' +
+        '<div class="key-masked">' + esc(maskKey(k.value)) + '</div>' +
+      '</div>' +
+      // 完整密钥放在 data-key 上供"复制"读取；已做 HTML 转义
+      '<button type="button" class="key-btn copy" data-key="' + esc(k.value) + '">复制</button>' +
+      '<button type="button" class="key-btn del" data-index="' + i + '">删除</button>' +
+    '</div>'
+  ).join('');
+  return '<div class="keys-block">' +
+           '<div class="keys-head">' +
+             '<span class="keys-title">密钥（' + keys.length + '）</span>' +
+             '<button type="button" class="keys-add">＋ 添加密钥</button>' +
+           '</div>' +
+           (keys.length ? '<div class="key-list">' + rows + '</div>' : '') +
          '</div>';
 }
 
@@ -431,18 +488,20 @@ function render() {
       '<button type="button" class="more-btn" aria-label="展开或收起详情">···</button>';
     card.appendChild(main);
 
-    // —— 详情区：地址 / 余额 / 备注 / 取消签到 / 删除站点 ——
+    // —— 详情区：地址 / 备注 / 密钥列表 / 底部操作（并排，避免臃肿） ——
     const details = document.createElement('div');
     details.className = 'card-details';
     const inner = document.createElement('div');
     inner.className = 'details-inner';
     inner.innerHTML =
       rowHTML('地址', url, 'url') +
-      rowHTML('余额', rec.balance, 'balance') +
       rowHTML('备注', rec.note, 'note') +
-      // 只有"今日已签"的站点才显示取消签到按钮
-      (signed ? '<button type="button" class="unsign-btn">取消今日签到</button>' : '') +
-      '<button type="button" class="del-btn">删除站点</button>';
+      keysSectionHTML(site, rec) +
+      '<div class="detail-actions">' +
+        // 只有"今日已签"的站点才显示取消签到按钮
+        (signed ? '<button type="button" class="act-btn warn">取消今日签到</button>' : '') +
+        '<button type="button" class="act-btn danger">删除站点</button>' +
+      '</div>';
     details.appendChild(inner);
     card.appendChild(details);
 
@@ -481,20 +540,31 @@ listEl.addEventListener('click', e => {
   // （a）点击「···」：展开 / 收起详情（不触发签到）
   if (e.target.closest('.more-btn')) { toggleExpand(card); return; }
 
-  // （b）点击「修改」：弹出修改弹窗（地址 / 余额 / 备注）
+  // （b）点击「修改」：弹出修改弹窗（地址 / 备注）
   const editBtn = e.target.closest('.row-btn');
   if (editBtn) { openEditDialog(site, editBtn.dataset.field); return; }
 
-  // （c）点击「取消今日签到」：清除今日签到状态
-  if (e.target.closest('.unsign-btn')) { unsignSite(site.id); return; }
+  // （c）点击密钥的「复制」：完整密钥写入剪贴板
+  const copyBtn = e.target.closest('.key-btn.copy');
+  if (copyBtn) { copyKey(copyBtn.dataset.key); return; }
 
-  // （d）点击「删除站点」：二次确认后删除该站点
-  if (e.target.closest('.del-btn')) { openDeleteConfirm(site); return; }
+  // （d）点击密钥的「删除」
+  const keyDelBtn = e.target.closest('.key-btn.del');
+  if (keyDelBtn) { deleteKey(site, Number(keyDelBtn.dataset.index)); return; }
 
-  // （e）详情区的其余空白位置：什么都不做
+  // （e）点击「＋ 添加密钥」
+  if (e.target.closest('.keys-add')) { openAddKeyDialog(site); return; }
+
+  // （f）点击「取消今日签到」：清除今日签到状态
+  if (e.target.closest('.act-btn.warn')) { unsignSite(site.id); return; }
+
+  // （g）点击「删除站点」：二次确认后删除该站点
+  if (e.target.closest('.act-btn.danger')) { openDeleteConfirm(site); return; }
+
+  // （h）详情区的其余空白位置：什么都不做
   if (e.target.closest('.card-details')) return;
 
-  // （f）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
+  // （i）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
   signSite(site);
 });
 
@@ -676,24 +746,24 @@ function dragFrame() {
 }
 
 /* ================================================================
- * ⑥ iOS 风格弹窗（新建 / 修改 / 删除确认 / 导出导入 共用一个弹窗）
+ * ⑥ iOS 风格弹窗（新建 / 修改 / 添加密钥 / 删除确认 / 导出导入 共用）
+ * ----------------------------------------------------------------
+ * 所有弹窗统一只使用单行 <input>（最多两个），没有任何 textarea。
  * ================================================================ */
 const maskEl   = document.getElementById('modal-mask');
 const titleEl  = document.getElementById('modal-title');
 const msgEl    = document.getElementById('modal-msg');
 const inputEl  = document.getElementById('modal-input');
 const input2El = document.getElementById('modal-input2');
-const taEl     = document.getElementById('modal-textarea');
 const okBtn    = document.getElementById('modal-ok');
 let dialogSave = null; // 点击"保存/确认"时执行的回调；返回 false 表示校验未通过，弹窗保持打开
 
-// 通用弹窗：inputs 为 [{value, placeholder, inputmode}]（最多两个），message 用于确认型弹窗
+// 通用弹窗：inputs 为 [{value, placeholder, inputmode, readonly}]（最多两个），message 用于确认型弹窗
 function showModal(opts) {
   titleEl.textContent = opts.title;
   msgEl.textContent   = opts.message || '';
   msgEl.classList.toggle('show', !!opts.message);
-  const inputs = opts.textarea ? [] : (opts.inputs || []);
-  const taConf = opts.textarea;
+  const inputs = opts.inputs || [];
   [inputEl, input2El].forEach((el, i) => {
     const conf = inputs[i];
     el.classList.toggle('hidden', !conf);
@@ -701,51 +771,39 @@ function showModal(opts) {
       el.value = conf.value || '';
       el.placeholder = conf.placeholder || '';
       el.setAttribute('inputmode', conf.inputmode || 'text');
+      el.readOnly = !!conf.readonly;
     }
   });
-  taEl.classList.toggle('hidden', !taConf);
-  if (taConf) {
-    taEl.value = taConf.value || '';
-    taEl.placeholder = taConf.placeholder || '';
-    taEl.readOnly = !!taConf.readonly;
-  }
   okBtn.textContent = opts.confirmLabel || '保存';
   okBtn.classList.toggle('danger', !!opts.danger);
   dialogSave = opts.onSave || null;
   maskEl.classList.add('show');
-  if (taConf)             setTimeout(() => { taEl.focus(); taEl.select(); }, 240); // 导出文本全选，方便手动复制
-  else if (inputs.length) setTimeout(() => inputEl.focus(), 240);                  // 等弹窗动画结束再聚焦
+  // 等弹窗动画结束再聚焦；只读的导出输入框自动全选，方便直接复制
+  if (inputs.length) setTimeout(() => { inputEl.focus(); if (inputs[0].readonly) inputEl.select(); }, 240);
 }
 
 function closeModal() {
   maskEl.classList.remove('show');
   inputEl.blur();
   input2El.blur();
-  taEl.blur();
   dialogSave = null;
 }
 
-// 修改弹窗（地址 / 余额 / 备注）
+// 修改弹窗（地址 / 备注）
 function openEditDialog(site, field) {
   const rec = getStateOf(site.id);
-  const isURL     = field === 'url';
-  const isBalance = field === 'balance';
-
+  const isURL = field === 'url';
   showModal({
-    title: isURL ? '修改站点地址' : isBalance ? '修改余额' : '修改备注',
+    title: isURL ? '修改站点地址' : '修改备注',
     inputs: [isURL
       ? { value: getSiteURL(site), placeholder: 'https://…', inputmode: 'url' }
-      : isBalance
-        ? { value: rec.balance, placeholder: '输入新余额', inputmode: 'decimal' }
-        : { value: rec.note, placeholder: '输入备注' }],
+      : { value: rec.note, placeholder: '输入备注' }],
     onSave: () => {
       const v = inputEl.value.trim();
       // 【修改逻辑】把新值写入该站点记录并持久化到 localStorage
       if (isURL) {
         // 地址留空保存 = 恢复为列表里的默认地址
         rec.url = v === '' ? '' : normalizeURL(v);
-      } else if (isBalance) {
-        rec.balance = v;
       } else {
         rec.note = v;
       }
@@ -783,11 +841,74 @@ function openCreateDialog() {
   });
 }
 
+// 添加密钥：填写名称 + 内容
+function openAddKeyDialog(site) {
+  const rec = getStateOf(site.id);
+  showModal({
+    title: '添加密钥',
+    inputs: [
+      { value: '', placeholder: '密钥名称（如：主力 Key）' },
+      { value: '', placeholder: '密钥内容（如：sk-xxxx）' }
+    ],
+    confirmLabel: '添加',
+    onSave: () => {
+      const name  = inputEl.value.trim();
+      const value = input2El.value.trim();
+      if (!name)  { toast('请填写密钥名称'); return false; } // 校验不通过，弹窗保持打开
+      if (!value) { toast('请填写密钥内容'); return false; }
+      if (!Array.isArray(rec.keys)) rec.keys = [];
+      rec.keys.push({ name: name, value: value }); // 数据结构：{ name, value }
+      saveState();
+      render();
+      toast('已添加密钥「' + name + '」');
+    }
+  });
+}
+
+// 复制密钥完整内容：先同步走临时 input + execCommand（在点按手势内成功率最高），
+// 失败再尝试 Clipboard API
+function copyKey(value) {
+  const done = ok => toast(ok ? '密钥已复制' : '复制失败');
+  if (fallbackCopy(value)) { done(true); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).then(() => done(true), () => done(false));
+  } else {
+    done(false);
+  }
+}
+
+// 复制兜底方案：创建一个屏外的单行 input，选中后 execCommand('copy')
+function fallbackCopy(text) {
+  try {
+    const tmp = document.createElement('input');
+    tmp.value = text;
+    tmp.style.position = 'fixed';
+    tmp.style.opacity = '0';
+    document.body.appendChild(tmp);
+    tmp.focus();
+    tmp.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(tmp);
+    return ok;
+  } catch (e) { return false; }
+}
+
+// 删除密钥（按索引，直接删除并提示）
+function deleteKey(site, index) {
+  const rec = getStateOf(site.id);
+  if (!Array.isArray(rec.keys) || !rec.keys[index]) return;
+  const name = rec.keys[index].name;
+  rec.keys.splice(index, 1);
+  saveState();
+  render();
+  toast('已删除密钥「' + name + '」');
+}
+
 // 删除站点（二次确认）
 function openDeleteConfirm(site) {
   showModal({
     title: '删除站点',
-    message: '确定删除「' + site.name + '」吗？它的签到记录、余额与备注将一并清除。',
+    message: '确定删除「' + site.name + '」吗？它的备注、密钥等数据将一并清除。',
     confirmLabel: '删除',
     danger: true,
     onSave: () => {
@@ -806,52 +927,60 @@ function openDeleteConfirm(site) {
 /* ================================================================
  * 导出 / 导入数据
  * ----------------------------------------------------------------
- * 导出：把站点列表（含顺序）、每个站点的签到日期 / 余额 / 备注 /
- *       自定义地址、最后使用日期，打包成一份格式化 JSON 文本，
- *       弹窗展示（自动全选 + 尝试写入剪贴板），复制保存即可。
+ * 导出：把站点列表（含顺序）、每个站点的签到日期 / 备注 / 自定义
+ *       地址 / 密钥列表、最后使用日期，打包成一份单行 JSON 文本，
+ *       放进只读的单行输入框（自动全选），点"复制"写入剪贴板。
  * 导入：粘贴之前导出的 JSON，校验通过后【整体替换】当前数据；
  *       若备份的日期早于今天，会按"跨天"规则清掉过期签到状态。
  * ================================================================ */
 function buildExportJSON() {
+  // 只导出已知字段，保证数据干净（不含任何历史遗留字段）
+  const cleanState = {};
+  Object.keys(state).forEach(k => {
+    const r = state[k] || {};
+    cleanState[k] = {
+      signedDate: r.signedDate || null,
+      note:       r.note || '',
+      url:        r.url || '',
+      keys:       Array.isArray(r.keys) ? r.keys : []
+    };
+  });
   return JSON.stringify({
     app: 'api-panel',                                        // 标识数据来源，导入时校验用
-    version: 1,
+    version: 2,
     exportedAt: new Date().toLocaleString(),
     sites: sites,                                            // 站点列表（含顺序）
-    state: state,                                            // 各站点的签到 / 余额 / 备注 / 地址
+    state: cleanState,                                       // 各站点的签到 / 备注 / 地址 / 密钥
     lastDate: storageGet(STORAGE_KEY_LASTDATE) || getToday() // 最后使用日期
-  }, null, 2);
+  });
 }
 
-// 打开导出弹窗：只读展示 JSON，点"复制"写入剪贴板
+// 打开导出弹窗：单行只读输入框展示 JSON（自动全选），点"复制"写入剪贴板
 function openExportDialog() {
   const json = buildExportJSON();
   showModal({
     title: '导出数据',
-    textarea: { value: json, readonly: true },
+    inputs: [{ value: json, readonly: true }],
     confirmLabel: '复制',
     onSave: () => {
-      taEl.focus();
-      taEl.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) {}   // 传统方案：选中文本 + execCommand（file:// 下也可用）
-      const fail = () => toast('复制失败，请在文本框中手动全选复制');
+      const ok = fallbackCopy(inputEl.value);
+      const fail = () => toast('复制失败，请手动全选复制');
       if (ok) { toast('已复制到剪贴板'); return; }
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(taEl.value).then(() => toast('已复制到剪贴板'), fail);
+        navigator.clipboard.writeText(inputEl.value).then(() => toast('已复制到剪贴板'), fail);
       } else fail();
     }
   });
 }
 
-// 打开导入弹窗：粘贴 JSON，校验通过后整体替换当前数据
+// 打开导入弹窗：单行输入框粘贴 JSON，校验通过后整体替换当前数据
 function openImportDialog() {
   showModal({
     title: '导入数据',
-    textarea: { value: '', placeholder: '粘贴之前导出的 JSON 文本…' },
+    inputs: [{ value: '', placeholder: '粘贴之前导出的 JSON 文本…' }],
     confirmLabel: '导入',
     onSave: () => {
-      const raw = taEl.value.trim();
+      const raw = inputEl.value.trim();
       if (!raw) { toast('请先粘贴 JSON 文本'); return false; }
       let data;
       try { data = JSON.parse(raw); }
@@ -880,9 +1009,12 @@ function openImportDialog() {
         const r = data.state[k] || {};
         state[k] = {
           signedDate: r.signedDate || null,
-          balance:    String(r.balance || ''),
           note:       String(r.note || ''),
-          url:        String(r.url || '')
+          url:        String(r.url || ''),
+          keys:       Array.isArray(r.keys)
+            ? r.keys.filter(k => k && k.name && k.value)
+                    .map(k => ({ name: String(k.name), value: String(k.value) }))
+            : []
         };
       });
       expanded.clear();
@@ -972,7 +1104,7 @@ function initPWA() {
 }
 
 /* ==================== 启动流程 ==================== */
-loadState();    // 1. 读取 localStorage 里的站点状态
+loadState();    // 1. 读取 localStorage 里的站点状态（顺带规范化旧数据、清除废弃字段）
 saveSites();    // 2. 把当前站点列表持久化（首次运行即写入，之后以界面管理为准）
 dailyReset();   // 3. 每日自动刷新（关键）：跨天则清空所有签到状态
 render();       // 4. 渲染卡片列表
