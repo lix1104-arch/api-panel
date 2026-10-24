@@ -31,7 +31,7 @@
   --text-3:  #c3c9d1;                 /* 占位文字 */
   --blue:    #6b93b8;                 /* 灰蓝（操作按钮，降饱和） */
   --green:   #5fae72;                 /* 柔和绿（已签到） */
-  --red:     #dd7a72;                 /* 柔和红（取消签到） */
+  --red:     #dd7a72;                 /* 柔和红（取消签到/删除） */
   --sep:     rgba(60,60,67,.08);      /* 发丝分割线（极淡） */
   --radius:  20px;                    /* 卡片圆角（大圆角，弱化硬朗感） */
 }
@@ -49,9 +49,19 @@ body{
 }
 .app{max-width:640px;margin:0 auto;padding:0 16px calc(44px + env(safe-area-inset-bottom,0px))}
 
-/* ==================== 顶部大标题 ==================== */
+/* ==================== 顶部大标题 + 新建按钮 ==================== */
 .header{padding-top:calc(env(safe-area-inset-top,0px) + 30px);margin-bottom:20px}
+.title-row{display:flex;align-items:center;justify-content:space-between}
 .large-title{font-size:32px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.add-btn{
+  flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;
+  background:#e9edf2;color:#7d8590;
+  font-size:20px;font-weight:500;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .15s ease,background .18s;
+  padding-bottom:2px; /* ＋ 号视觉居中 */
+}
+.add-btn:active{transform:scale(.9);background:#e1e6ed}
 .subtitle{margin-top:7px;font-size:14px;color:var(--text-2);letter-spacing:.1px}
 
 /* ==================== 卡片列表 ==================== */
@@ -63,12 +73,19 @@ body{
   /* 两层弥散阴影代替一层硬阴影：更轻、更柔、有空气感 */
   box-shadow:0 2px 6px rgba(30,45,62,.04),0 14px 34px rgba(30,45,62,.055);
   overflow:hidden;
+  transition:box-shadow .2s ease;
 }
-/* 卡片主行：文字标题 + 域名 | 签到状态 | ··· 按钮 */
+/* 长按拖动中的卡片：抬起、加重阴影、更醒目 */
+.card.dragging{
+  z-index:10;
+  box-shadow:0 10px 24px rgba(30,45,62,.16),0 30px 60px rgba(30,45,62,.18);
+  cursor:grabbing;
+}
+/* 卡片主行：文字标题 + 域名 | 签到状态 | ··· 按钮（也是长按拖动的把手） */
 .card-main{
   display:flex;align-items:center;gap:12px;
   padding:15px 16px;cursor:pointer;
-  user-select:none;-webkit-user-select:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none; /* 长按不选中文字、不弹系统菜单 */
   transition:background .18s;
 }
 .card-main:active{background:rgba(30,45,62,.035)} /* iOS 按压反馈（很淡） */
@@ -111,6 +128,13 @@ body{
   cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
 }
 .unsign-btn:active{transform:scale(.98);opacity:.7}
+.del-btn{
+  width:100%;margin-top:8px;border:none;border-radius:14px;
+  background:rgba(148,155,165,.10);color:var(--red);
+  font-size:15px;font-weight:600;padding:12px;
+  cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
+}
+.del-btn:active{transform:scale(.98);opacity:.7}
 
 /* 空列表提示 */
 .empty-tip{padding:22px 16px;text-align:center;color:var(--text-2);font-size:14px}
@@ -118,7 +142,7 @@ body{
 /* 底部提示 */
 .footer-hint{margin-top:22px;text-align:center;font-size:12px;color:var(--text-3)}
 
-/* ==================== iOS 风格弹窗（修改地址 / 余额 / 备注） ==================== */
+/* ==================== iOS 风格弹窗（新建 / 修改 / 删除确认 共用） ==================== */
 .modal-mask{
   position:fixed;inset:0;z-index:100;
   background:rgba(45,55,70,.35);
@@ -135,19 +159,27 @@ body{
 }
 .modal-mask.show .modal{transform:scale(1)}
 .modal-title{font-size:16px;font-weight:600;padding:18px 16px 0}
+.modal-msg{
+  display:none;padding:10px 20px 0;font-size:14px;line-height:1.55;
+  color:var(--text-2);word-break:break-all;
+}
+.modal-msg.show{display:block}
 .modal-input{
-  display:block;width:calc(100% - 32px);margin:10px auto 16px;
+  display:block;width:calc(100% - 32px);margin:12px auto 0;
   padding:8px 10px;font-size:16px;font-family:inherit; /* 16px 可避免 iOS 聚焦时页面缩放 */
   border:none;border-radius:10px;
   background:rgba(120,120,128,.10);color:var(--text);outline:none;
 }
 .modal-input:focus{background:rgba(120,120,128,.16)}
-.modal-actions{display:flex;border-top:.5px solid var(--sep)}
+.modal-input + .modal-input{margin-top:8px} /* 新建模式下的第二个输入框 */
+.hidden{display:none}
+.modal-actions{display:flex;margin-top:16px;border-top:.5px solid var(--sep)}
 .modal-actions button{
   flex:1;padding:12px;font-size:16px;font-family:inherit;
   background:transparent;border:none;color:var(--blue);cursor:pointer;
 }
 .modal-actions button + button{border-left:.5px solid var(--sep);font-weight:600}
+.modal-actions button.danger{color:var(--red)} /* 删除确认按钮为红色 */
 .modal-actions button:active{background:rgba(0,0,0,.05)}
 
 /* ==================== 轻提示 Toast ==================== */
@@ -166,20 +198,25 @@ body{
 
 <div class="app">
   <header class="header">
-    <h1 class="large-title">存</h1>
+    <div class="title-row">
+      <h1 class="large-title">存</h1>
+      <button type="button" class="add-btn" id="add-btn" aria-label="新建站点">＋</button>
+    </div>
     <p class="subtitle" id="subtitle">—</p>
   </header>
 
-  <main id="card-list"><!-- 卡片由 JS 根据 sites 数组渲染 --></main>
+  <main id="card-list"><!-- 卡片由 JS 根据站点列表渲染 --></main>
 
-  <p class="footer-hint">点击卡片打开站点并签到 · 点击「···」展开详情</p>
+  <p class="footer-hint">点击卡片打开站点并签到 · 长按卡片可拖动排序 · 点击「···」展开详情</p>
 </div>
 
-<!-- iOS 风格弹窗：修改站点地址 / 余额 / 备注 -->
+<!-- iOS 风格弹窗：新建站点 / 修改地址、余额、备注 / 删除确认 -->
 <div class="modal-mask" id="modal-mask">
   <div class="modal">
     <div class="modal-title" id="modal-title">修改</div>
+    <div class="modal-msg" id="modal-msg"></div>
     <input class="modal-input" id="modal-input" type="text" autocomplete="off" spellcheck="false">
+    <input class="modal-input hidden" id="modal-input2" type="text" autocomplete="off" spellcheck="false">
     <div class="modal-actions">
       <button type="button" id="modal-cancel">取消</button>
       <button type="button" id="modal-ok">保存</button>
@@ -193,21 +230,29 @@ body{
 'use strict';
 
 /* ================================================================
- * ① 站点配置区 ——【在这里增删你的站点】
+ * ① 站点列表（初始配置 + 运行时管理）
  * ----------------------------------------------------------------
- * 新增站点：往数组里加一条 { id, name, url }，例如：
- *   { id: "site3", name: "新站点", url: "https://example.com" }
- * 删除站点：删掉对应整行即可（它留在 localStorage 里的旧数据不会
- *           自动清理，但界面不会再显示，不影响使用）。
- * 可选字段（可写可不写）：
- *   balance —— 初始余额，如 "12.50"；不填界面显示 "—"
- *   note    —— 初始备注文字；不填界面显示 "—"
- * 注意 1：id 必须唯一，它是 localStorage 中数据的主键。
- * 注意 2：站点地址支持在界面里随时修改（详情区的「地址」行），
- *         修改结果保存在 localStorage 并优先于这里的 url；
- *         在弹窗中清空并保存即可恢复为这里的默认地址。
+ * 下面的数组只作为【第一次打开页面】时的初始站点列表。
+ * 之后的一切管理——新建、删除、长按拖动排序——都在界面上完成，
+ * 并自动保存到 localStorage 的 apiPanel.sites，优先于这里的配置。
+ * 可选字段 balance / note 同样只在初始化时生效。
+ * 想重新以这里的配置初始化：删除 localStorage 中的 apiPanel.sites
+ * （或在控制台执行 localStorage.removeItem('apiPanel.sites')）后刷新。
+ * 注意：id 必须唯一，它是 localStorage 中数据的主键；界面上新建的
+ * 站点会自动生成不冲突的 id。
  * ================================================================ */
-const sites = [
+const STORAGE_KEY_SITES = 'apiPanel.sites';
+
+// 读取已保存的站点列表；没有（首次使用）则返回 null，由调用方使用默认配置
+function loadSites() {
+  try {
+    const saved = JSON.parse(storageGet(STORAGE_KEY_SITES));
+    if (Array.isArray(saved) && saved.length && saved.every(s => s && s.id && s.name)) return saved;
+  } catch (e) {}
+  return null;
+}
+
+let sites = loadSites() || [
   { id: "site1", name: "清酒", url: "https://qingjiu.nemodesk.top" },
   { id: "site2", name: "Noir",  url: "https://noir.blacknoir.cn" }
 ];
@@ -216,6 +261,8 @@ const sites = [
  * ② 存储层（localStorage，带内存兜底）
  * ----------------------------------------------------------------
  * localStorage 中的数据结构：
+ *   apiPanel.sites    -> 站点列表（含顺序）：
+ *        [ { id:"site1", name:"清酒", url:"https://…" }, … ]
  *   apiPanel.lastDate -> "2026-10-24"        最后一次使用的日期
  *   apiPanel.state    -> 每个站点的状态：
  *        {
@@ -223,7 +270,7 @@ const sites = [
  *                     balance:   "12.50",               余额
  *                     note:      "备注文字",             备注
  *                     url:       "" },                  界面里修改过的地址
- *                                                       （"" 表示用配置默认值）
+ *                                                       （"" 表示用列表里的地址）
  *          "site2": { ... }
  *        }
  * 站点是否"今日已签"由 signedDate === 今天 推导得出。
@@ -238,6 +285,11 @@ function storageGet(key) {
 }
 function storageSet(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { memoryStore[key] = value; }
+}
+
+// 站点列表（顺序）持久化
+function saveSites() {
+  storageSet(STORAGE_KEY_SITES, JSON.stringify(sites));
 }
 
 // 全部站点状态（内存中的工作副本），任何修改后调用 saveState() 持久化
@@ -258,7 +310,7 @@ function getStateOf(siteId) {
   return state[siteId];
 }
 
-// 站点当前生效的地址：界面里修改过的优先，否则用配置里的默认地址
+// 站点当前生效的地址：界面里修改过的优先，否则用列表里的默认地址
 function getSiteURL(site) {
   const rec = state[site.id];
   return (rec && rec.url) ? rec.url : site.url;
@@ -328,7 +380,7 @@ function render() {
   listEl.innerHTML = '';
 
   if (sites.length === 0) {
-    listEl.innerHTML = '<div class="card"><div class="empty-tip">还没有站点，请在代码顶部 sites 数组中添加</div></div>';
+    listEl.innerHTML = '<div class="card"><div class="empty-tip">还没有站点，点击右上角「＋」新建一个吧</div></div>';
   }
 
   for (const site of sites) {
@@ -354,7 +406,7 @@ function render() {
       '<button type="button" class="more-btn" aria-label="展开或收起详情">···</button>';
     card.appendChild(main);
 
-    // —— 详情区：地址 / 余额 / 备注 / 取消签到 ——
+    // —— 详情区：地址 / 余额 / 备注 / 取消签到 / 删除站点 ——
     const details = document.createElement('div');
     details.className = 'card-details';
     const inner = document.createElement('div');
@@ -364,7 +416,8 @@ function render() {
       rowHTML('余额', rec.balance, 'balance') +
       rowHTML('备注', rec.note, 'note') +
       // 只有"今日已签"的站点才显示取消签到按钮
-      (signed ? '<button type="button" class="unsign-btn">取消今日签到</button>' : '');
+      (signed ? '<button type="button" class="unsign-btn">取消今日签到</button>' : '') +
+      '<button type="button" class="del-btn">删除站点</button>';
     details.appendChild(inner);
     card.appendChild(details);
 
@@ -394,6 +447,7 @@ function render() {
 
 // 事件统一委托到列表容器上
 listEl.addEventListener('click', e => {
+  if (suppressClick) return; // 拖动刚结束，吞掉结尾误触的 click
   const card = e.target.closest('.card');
   if (!card) return;
   const site = sites.find(s => s.id === card.dataset.id);
@@ -409,10 +463,13 @@ listEl.addEventListener('click', e => {
   // （c）点击「取消今日签到」：清除今日签到状态
   if (e.target.closest('.unsign-btn')) { unsignSite(site.id); return; }
 
-  // （d）详情区的其余空白位置：什么都不做
+  // （d）点击「删除站点」：二次确认后删除该站点
+  if (e.target.closest('.del-btn')) { openDeleteConfirm(site); return; }
+
+  // （e）详情区的其余空白位置：什么都不做
   if (e.target.closest('.card-details')) return;
 
-  // （e）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
+  // （f）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
   signSite(site);
 });
 
@@ -454,59 +511,276 @@ function unsignSite(siteId) {
 }
 
 /* ================================================================
- * ⑥ iOS 风格修改弹窗（站点地址 / 余额 / 备注）
+ * ⑤-B 长按拖动排序（长按卡片约 0.35 秒进入拖动；触屏和鼠标都支持）
+ * ----------------------------------------------------------------
+ * 原理：pointerdown 后启动计时器，期间移动超过阈值视为滚动并取消；
+ * 计时结束进入拖动——卡片跟随手指（translateY），当它的中心越过
+ * 相邻卡片的中点时实时交换 DOM 顺序，松手后把 DOM 顺序写回 sites
+ * 数组并持久化。
  * ================================================================ */
-const maskEl  = document.getElementById('modal-mask');
-const inputEl = document.getElementById('modal-input');
-const titleEl = document.getElementById('modal-title');
-let dialogSave = null; // 点击"保存"时执行的回调
+let drag = null;           // 当前拖动状态；null 表示空闲
+let suppressClick = false; // 拖动结束时吞掉结尾产生的 click，避免误签到
+const LONG_PRESS_MS = 350; // 长按触发时长
 
+listEl.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;                          // 只响应左键 / 触摸
+  const main = e.target.closest('.card-main');
+  if (!main || e.target.closest('.more-btn')) return;  // ··· 按钮不参与拖动
+  const card = main.closest('.card');
+  drag = {
+    card: card,
+    pointerId: e.pointerId,
+    startX: e.clientX, startY: e.clientY,
+    curY: e.clientY,
+    started: false, timer: null, origOrder: null
+  };
+  // 长按计时：按住不动达到 LONG_PRESS_MS 才进入拖动
+  drag.timer = setTimeout(startDrag, LONG_PRESS_MS);
+});
+
+function startDrag() {
+  if (!drag) return;
+  drag.started = true;
+  drag.origOrder = sites.map(s => s.id);      // 记录初始顺序，结束时判断是否真的变化
+  drag.card.classList.add('dragging');        // 抬起效果
+  suppressClick = true;                       // 拖完后紧接着的 click 不触发签到
+  if (navigator.vibrate) navigator.vibrate(10); // 触觉反馈（部分安卓支持）
+  requestAnimationFrame(dragFrame);           // 启动边缘自动滚动循环
+}
+
+window.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  // 长按生效前的移动：判定为滚动页面，取消长按
+  if (!drag.started) {
+    if (Math.abs(e.clientY - drag.startY) > 12 || Math.abs(e.clientX - drag.startX) > 12) {
+      clearTimeout(drag.timer);
+      drag = null;
+    }
+    return;
+  }
+  drag.curY = e.clientY;
+  applyDragTransform();
+  reorderDuringDrag();
+});
+
+// 松手 / 系统打断（如来电、滚动接管）时结束拖动
+function endDrag(e) {
+  if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+  clearTimeout(drag.timer);
+  if (drag.started) {
+    drag.card.classList.remove('dragging');
+    drag.card.style.transform = '';
+    // 按 DOM 顺序把新顺序写回 sites 并持久化
+    const order   = [...listEl.querySelectorAll('.card')].map(c => c.dataset.id);
+    const changed = order.join() !== drag.origOrder.join();
+    if (changed) {
+      sites.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      saveSites();
+      render();
+      toast('顺序已保存');
+    }
+    setTimeout(() => { suppressClick = false; }, 300);
+  }
+  drag = null;
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+// 拖动进行中阻止页面触摸滚动（passive:false 才能 preventDefault）
+document.addEventListener('touchmove', e => {
+  if (drag && drag.started) e.preventDefault();
+}, { passive: false });
+
+// 长按不弹系统菜单（iOS / Android）
+listEl.addEventListener('contextmenu', e => {
+  if (e.target.closest('.card-main')) e.preventDefault();
+});
+
+// 鼠标滚轮在拖动中滚动页面时，同步补偿卡片位置
+window.addEventListener('wheel', e => {
+  if (drag && drag.started) {
+    drag.startY -= e.deltaY;
+    applyDragTransform();
+    reorderDuringDrag();
+  }
+}, { passive: true });
+
+function applyDragTransform() {
+  drag.card.style.transform = 'translateY(' + (drag.curY - drag.startY) + 'px)';
+}
+
+// 拖动时根据卡片中心与相邻卡片中点比较，实时交换 DOM 顺序
+function reorderDuringDrag() {
+  const rect = drag.card.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+  const next = drag.card.nextElementSibling;
+  const prev = drag.card.previousElementSibling;
+  if (next) {
+    const r = next.getBoundingClientRect();
+    if (midY > r.top + r.height / 2) return shiftCard(() => next.after(drag.card));
+  }
+  if (prev) {
+    const r = prev.getBoundingClientRect();
+    if (midY < r.top + r.height / 2) return shiftCard(() => prev.before(drag.card));
+  }
+}
+
+// DOM 位置变化后补偿 translateY，让卡片在手指下保持视觉连续
+function shiftCard(domMove) {
+  const oldTop = drag.card.getBoundingClientRect().top;
+  domMove();
+  const newTop = drag.card.getBoundingClientRect().top;
+  drag.startY += newTop - oldTop;
+  applyDragTransform();
+}
+
+// 拖到屏幕上下边缘时自动滚动列表
+function dragFrame() {
+  if (!drag || !drag.started) return;
+  const vh = window.innerHeight;
+  let scroll = 0;
+  if (drag.curY < 90)                        scroll = -Math.min(12, (90 - drag.curY) / 3);
+  else if (drag.curY > vh - 90)              scroll =  Math.min(12, (drag.curY - (vh - 90)) / 3);
+  if (scroll) {
+    window.scrollBy(0, scroll);
+    drag.startY -= scroll; // 页面滚动后补偿，卡片继续贴着手指
+    applyDragTransform();
+    reorderDuringDrag();
+  }
+  requestAnimationFrame(dragFrame);
+}
+
+/* ================================================================
+ * ⑥ iOS 风格弹窗（新建 / 修改 / 删除确认 共用一个弹窗）
+ * ================================================================ */
+const maskEl   = document.getElementById('modal-mask');
+const titleEl  = document.getElementById('modal-title');
+const msgEl    = document.getElementById('modal-msg');
+const inputEl  = document.getElementById('modal-input');
+const input2El = document.getElementById('modal-input2');
+const okBtn    = document.getElementById('modal-ok');
+let dialogSave = null; // 点击"保存/确认"时执行的回调；返回 false 表示校验未通过，弹窗保持打开
+
+// 通用弹窗：inputs 为 [{value, placeholder, inputmode}]（最多两个），message 用于确认型弹窗
+function showModal(opts) {
+  titleEl.textContent = opts.title;
+  msgEl.textContent   = opts.message || '';
+  msgEl.classList.toggle('show', !!opts.message);
+  const inputs = opts.inputs || [];
+  [inputEl, input2El].forEach((el, i) => {
+    const conf = inputs[i];
+    el.classList.toggle('hidden', !conf);
+    if (conf) {
+      el.value = conf.value || '';
+      el.placeholder = conf.placeholder || '';
+      el.setAttribute('inputmode', conf.inputmode || 'text');
+    }
+  });
+  okBtn.textContent = opts.confirmLabel || '保存';
+  okBtn.classList.toggle('danger', !!opts.danger);
+  dialogSave = opts.onSave || null;
+  maskEl.classList.add('show');
+  if (inputs.length) setTimeout(() => inputEl.focus(), 240); // 等弹窗动画结束再聚焦
+}
+
+function closeModal() {
+  maskEl.classList.remove('show');
+  inputEl.blur();
+  input2El.blur();
+  dialogSave = null;
+}
+
+// 修改弹窗（地址 / 余额 / 备注）
 function openEditDialog(site, field) {
   const rec = getStateOf(site.id);
   const isURL     = field === 'url';
   const isBalance = field === 'balance';
 
-  titleEl.textContent = isURL ? '修改站点地址' : isBalance ? '修改余额' : '修改备注';
-  inputEl.value = isURL ? getSiteURL(site) : isBalance ? rec.balance : rec.note;
-  inputEl.placeholder = isURL ? 'https://…' : isBalance ? '输入新余额' : '输入备注';
-  inputEl.setAttribute('inputmode', isURL ? 'url' : isBalance ? 'decimal' : 'text');
-
-  dialogSave = newValue => {
-    const v = newValue.trim();
-    // 【修改逻辑】把新值写入该站点记录并持久化到 localStorage
-    if (isURL) {
-      // 地址留空保存 = 恢复为 sites 配置里的默认地址
-      rec.url = v === '' ? '' : normalizeURL(v);
-    } else if (isBalance) {
-      rec.balance = v;
-    } else {
-      rec.note = v;
+  showModal({
+    title: isURL ? '修改站点地址' : isBalance ? '修改余额' : '修改备注',
+    inputs: [isURL
+      ? { value: getSiteURL(site), placeholder: 'https://…', inputmode: 'url' }
+      : isBalance
+        ? { value: rec.balance, placeholder: '输入新余额', inputmode: 'decimal' }
+        : { value: rec.note, placeholder: '输入备注' }],
+    onSave: () => {
+      const v = inputEl.value.trim();
+      // 【修改逻辑】把新值写入该站点记录并持久化到 localStorage
+      if (isURL) {
+        // 地址留空保存 = 恢复为列表里的默认地址
+        rec.url = v === '' ? '' : normalizeURL(v);
+      } else if (isBalance) {
+        rec.balance = v;
+      } else {
+        rec.note = v;
+      }
+      saveState();
+      render();
+      toast(isURL && v === '' ? '已恢复默认地址' : '已保存');
     }
-    saveState();
-    render();
-    toast(isURL && v === '' ? '已恢复默认地址' : '已保存');
-  };
-
-  maskEl.classList.add('show');
-  setTimeout(() => inputEl.focus(), 240); // 等弹窗动画结束再聚焦，避免 iOS 键盘顶起时动画异常
+  });
 }
 
-function closeEditDialog() {
-  maskEl.classList.remove('show');
-  inputEl.blur();
-  dialogSave = null;
+// 新建站点：填写名称 + 地址
+function openCreateDialog() {
+  showModal({
+    title: '新建站点',
+    inputs: [
+      { value: '', placeholder: '站点名称' },
+      { value: '', placeholder: 'https://（站点地址）', inputmode: 'url' }
+    ],
+    confirmLabel: '添加',
+    onSave: () => {
+      const name = inputEl.value.trim();
+      const url  = input2El.value.trim();
+      if (!name) { toast('请填写站点名称'); return false; } // 校验不通过，弹窗保持打开
+      if (!url)  { toast('请填写站点地址'); return false; }
+      const id = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); // 自动生成唯一 id
+      sites.push({ id: id, name: name, url: normalizeURL(url) });
+      saveSites();
+      render();
+      toast('已添加「' + name + '」');
+      setTimeout(() => { // 滚动到底部，让新卡片进入视野
+        const last = listEl.lastElementChild;
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 120);
+    }
+  });
 }
 
-document.getElementById('modal-ok').addEventListener('click', () => {
-  if (dialogSave) dialogSave(inputEl.value);
-  closeEditDialog();
+// 删除站点（二次确认）
+function openDeleteConfirm(site) {
+  showModal({
+    title: '删除站点',
+    message: '确定删除「' + site.name + '」吗？它的签到记录、余额与备注将一并清除。',
+    confirmLabel: '删除',
+    danger: true,
+    onSave: () => {
+      const i = sites.findIndex(s => s.id === site.id);
+      if (i > -1) sites.splice(i, 1);
+      delete state[site.id]; // 一并清除该站点的本地数据
+      expanded.delete(site.id);
+      saveSites();
+      saveState();
+      render();
+      toast('已删除「' + site.name + '」');
+    }
+  });
+}
+
+document.getElementById('add-btn').addEventListener('click', openCreateDialog);
+
+okBtn.addEventListener('click', () => {
+  if (!dialogSave) { closeModal(); return; }
+  if (dialogSave() === false) return; // 校验未通过，弹窗保持打开
+  closeModal();
 });
-document.getElementById('modal-cancel').addEventListener('click', closeEditDialog);
-maskEl.addEventListener('click', e => { if (e.target === maskEl) closeEditDialog(); }); // 点遮罩关闭
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter')  document.getElementById('modal-ok').click(); // 回车 = 保存
-  if (e.key === 'Escape') closeEditDialog();                            // Esc = 取消
-});
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+maskEl.addEventListener('click', e => { if (e.target === maskEl) closeModal(); }); // 点遮罩关闭
+[inputEl, input2El].forEach(el => el.addEventListener('keydown', e => {
+  if (e.key === 'Enter')  okBtn.click(); // 回车 = 保存
+  if (e.key === 'Escape') closeModal();  // Esc = 取消
+}));
 
 /* ==================== 轻提示 ==================== */
 let toastTimer = null;
@@ -569,9 +843,10 @@ function initPWA() {
 
 /* ==================== 启动流程 ==================== */
 loadState();    // 1. 读取 localStorage 里的站点状态
-dailyReset();   // 2. 每日自动刷新（关键）：跨天则清空所有签到状态
-render();       // 3. 渲染卡片列表
-initPWA();      // 4. 生成 PWA 图标与 manifest
+saveSites();    // 2. 把当前站点列表持久化（首次运行即写入，之后以界面管理为准）
+dailyReset();   // 3. 每日自动刷新（关键）：跨天则清空所有签到状态
+render();       // 4. 渲染卡片列表
+initPWA();      // 5. 生成 PWA 图标与 manifest
 
 // 面板一直开着跨过凌晨的情况：从后台切回前台时再检查一次日期
 document.addEventListener('visibilitychange', () => {
