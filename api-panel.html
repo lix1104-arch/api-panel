@@ -92,6 +92,13 @@ body{
 .site-info{flex:1;min-width:0}
 .site-name{font-size:17px;font-weight:600}
 .site-url{margin-top:2px;font-size:12px;color:var(--text-2);word-break:break-all}
+/* 备注小标签：直接显示在卡片上，不用展开详情 */
+.note-tag{
+  display:inline-block;margin-top:5px;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:11px;line-height:1;padding:4px 9px;border-radius:999px;
+  background:rgba(148,155,165,.10);color:var(--text-2);
+}
 .status{flex-shrink:0;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;cursor:pointer;transition:transform .15s ease}
 .status:active{transform:scale(.92)} /* 状态徽章可点击切换，给个轻按压反馈 */
 .status.signed{color:var(--green);background:rgba(95,174,114,.12)}
@@ -147,7 +154,13 @@ body{
   font-size:12px;font-weight:600;padding:4px 11px;
   cursor:pointer;transition:transform .15s ease,opacity .15s;font-family:inherit;
 }
-.key-btn.copy{background:rgba(107,147,184,.13);color:var(--blue)}
+/* 复制按钮：小图标样式（替代文字，更省空间）；删除按钮保持文字 */
+.key-btn.copy{
+  background:rgba(107,147,184,.13);color:var(--blue);
+  width:28px;height:28px;padding:0;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+}
+.key-btn.copy svg{width:13px;height:13px;display:block}
 .key-btn.del{background:rgba(221,122,114,.10);color:var(--red)}
 .key-btn:active{transform:scale(.94);opacity:.7}
 
@@ -420,6 +433,14 @@ function esc(s) {
 // 站点域名小字：去掉协议头和末尾斜杠，纯展示用
 function shortURL(u) { return u.replace(/^https?:\/\//, '').replace(/\/$/, ''); }
 
+// 复制按钮的小图标（内联 SVG，随按钮文字色着色）
+const COPY_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="9" y="9" width="13" height="13" rx="2"></rect>' +
+  '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>' +
+  '</svg>';
+
 // 密钥打码展示：保留首尾各几位，中间用 *** 代替（如 sk-ab***7890）
 function maskKey(v) {
   const s = String(v);
@@ -427,13 +448,15 @@ function maskKey(v) {
   return s.slice(0, 5) + '***' + s.slice(-4);
 }
 
-// 详情行：传 copyValue 时右侧为「复制」按钮（与密钥同款样式、同一点击逻辑），
-// 否则为「修改」按钮
+// 详情行：传 copyValue 时加「复制」按钮（与密钥同款样式、同一点击逻辑），
+// 传 field 时加「修改」按钮；两个都传则同时显示（URL 行：复制 + 修改）
 function rowHTML(label, value, field, copyValue) {
   const empty = value === undefined || value === null || String(value).trim() === '';
-  const btn = copyValue !== undefined
-    ? '<button type="button" class="key-btn copy" data-key="' + esc(copyValue) + '">复制</button>'
-    : '<button type="button" class="row-btn" data-field="' + field + '">修改</button>';
+  let btn = '';
+  if (copyValue !== undefined)
+    btn += '<button type="button" class="key-btn copy" data-key="' + esc(copyValue) + '" aria-label="复制">' + COPY_ICON + '</button>';
+  if (field)
+    btn += '<button type="button" class="row-btn" data-field="' + field + '">修改</button>';
   return '<div class="detail-row">' +
            '<span class="detail-label">' + label + '：</span>' +
            '<span class="detail-value' + (empty ? ' empty' : '') + '">' + (empty ? '—' : esc(value)) + '</span>' +
@@ -450,8 +473,8 @@ function keysSectionHTML(site, rec) {
         '<div class="key-name">' + esc(k.name) + '</div>' +
         '<div class="key-masked">' + esc(maskKey(k.value)) + '</div>' +
       '</div>' +
-      // 完整密钥放在 data-key 上供"复制"读取；已做 HTML 转义
-      '<button type="button" class="key-btn copy" data-key="' + esc(k.value) + '">复制</button>' +
+      // 复制按钮为小图标；完整密钥放在 data-key 上供点击读取（已做 HTML 转义）
+      '<button type="button" class="key-btn copy" data-key="' + esc(k.value) + '" aria-label="复制">' + COPY_ICON + '</button>' +
       '<button type="button" class="key-btn del" data-index="' + i + '">删除</button>' +
     '</div>'
   ).join('');
@@ -487,6 +510,8 @@ function render() {
       '<div class="site-info">' +
         '<div class="site-name">' + esc(site.name) + '</div>' +
         '<div class="site-url">' + esc(shortURL(url)) + '</div>' +
+        // 有备注时，在卡片上直接显示小标签（不用展开详情）
+        (String(rec.note || '').trim() ? '<div class="note-tag">' + esc(rec.note) + '</div>' : '') +
       '</div>' +
       (signed
         ? '<div class="status signed">✓已签</div>'
@@ -500,7 +525,7 @@ function render() {
     const inner = document.createElement('div');
     inner.className = 'details-inner';
     inner.innerHTML =
-      rowHTML('URL', url, null, url) +          // URL 行：照常显示 + 一键复制（与密钥同款按钮）
+      rowHTML('URL', url, 'url', url) +         // URL 行：照常显示 + 一键复制 + 行内修改
       rowHTML('备注', rec.note, 'note') +
       keysSectionHTML(site, rec) +
       '<div class="detail-actions">' +
