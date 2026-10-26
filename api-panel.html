@@ -31,7 +31,7 @@
   --text-3:  #c3c9d1;                 /* 占位文字 */
   --blue:    #6b93b8;                 /* 灰蓝（操作按钮，降饱和） */
   --green:   #5fae72;                 /* 柔和绿（已签到） */
-  --red:     #dd7a72;                 /* 柔和红（取消签到/删除） */
+  --red:     #dd7a72;                 /* 柔和红（删除） */
   --sep:     rgba(60,60,67,.08);      /* 发丝分割线（极淡） */
   --radius:  20px;                    /* 卡片圆角（大圆角，弱化硬朗感） */
 }
@@ -49,10 +49,21 @@ body{
 }
 .app{max-width:640px;margin:0 auto;padding:0 16px calc(44px + env(safe-area-inset-bottom,0px))}
 
-/* ==================== 顶部大标题 + 新建按钮 ==================== */
+/* ==================== 顶部大标题 + 右上角按钮组 ==================== */
 .header{padding-top:calc(env(safe-area-inset-top,0px) + 30px);margin-bottom:20px}
 .title-row{display:flex;align-items:center;justify-content:space-between}
 .large-title{font-size:32px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.header-btns{display:flex;align-items:center;gap:8px}
+/* 小圆图标按钮：显示/隐藏网址（眼睛）、导出、导入 */
+.icon-btn{
+  flex-shrink:0;width:32px;height:32px;border:none;border-radius:50%;
+  background:#e9edf2;color:#7d8590;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:transform .15s ease,background .18s;
+}
+.icon-btn svg{width:15px;height:15px;display:block}
+.icon-btn:active{transform:scale(.9);background:#e1e6ed}
+.icon-btn.dim{color:#c3c9d1} /* 网址隐藏时眼睛变淡，作为状态提示 */
 .add-btn{
   flex-shrink:0;width:38px;height:38px;border:none;border-radius:50%;
   background:#e9edf2;color:#7d8590;
@@ -131,21 +142,6 @@ body{
 }
 .row-btn:active{transform:scale(.94);opacity:.7} /* 轻弹性按压反馈 */
 
-/* ---- iOS 风格小开关（详情区「无签到」行、新建弹窗共用） ---- */
-.switch{
-  position:relative;flex-shrink:0;width:44px;height:26px;
-  background:rgba(120,120,128,.25);border-radius:999px;cursor:pointer;
-  transition:background .2s ease;
-}
-.switch.on{background:var(--green)}
-.switch::after{
-  content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;
-  background:#fff;border-radius:50%;
-  box-shadow:0 1px 3px rgba(0,0,0,.18);
-  transition:left .2s ease;
-}
-.switch.on::after{left:21px}
-
 /* ---- 密钥区块：小标题 + 紧凑列表，视觉上独立于上面两个 ---- */
 .keys-block{margin-top:6px;border-top:.5px solid var(--sep)}
 .keys-head{display:flex;align-items:center;justify-content:space-between;min-height:38px}
@@ -180,7 +176,7 @@ body{
 .key-btn.del{background:rgba(221,122,114,.10);color:var(--red)}
 .key-btn:active{transform:scale(.94);opacity:.7}
 
-/* ---- 详情区底部操作：取消签到 / 删除站点 并排，节省纵向空间 ---- */
+/* ---- 详情区底部操作：编辑站点 / 删除站点 并排，节省纵向空间 ---- */
 .detail-actions{display:flex;gap:8px;margin-top:10px}
 .act-btn{
   flex:1;border:none;border-radius:14px;
@@ -197,7 +193,7 @@ body{
 /* 底部提示 */
 .footer-hint{margin-top:22px;text-align:center;font-size:12px;color:var(--text-3)}
 
-/* ==================== iOS 风格弹窗（新建 / 修改 / 添加密钥 / 确认 / 导出导入 共用） ==================== */
+/* ==================== iOS 风格弹窗（新建 / 编辑 / 修改 / 确认 / 导出导入 共用） ==================== */
 /* 所有弹窗统一只使用单行 <input>，界面整洁 */
 .modal-mask{
   position:fixed;inset:0;z-index:100;
@@ -227,9 +223,10 @@ body{
   background:rgba(120,120,128,.10);color:var(--text);outline:none;
 }
 .modal-input:focus{background:rgba(120,120,128,.16)}
-.modal-input + .modal-input{margin-top:8px} /* 需要两个输入框的弹窗（新建站点 / 添加密钥） */
-/* 新建弹窗里的「无签到」开关行 */
-.modal-toggle{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 32px);margin:14px auto 0;padding:0 2px}
+.modal-input + .modal-input{margin-top:8px} /* 多输入框弹窗（新建 / 编辑 / 添加密钥） */
+/* 弹窗里的开关行（点击自动签到 / 无签到） */
+.modal-toggle{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 32px);margin:12px auto 0;padding:0 2px}
+.modal-toggle + .modal-toggle{margin-top:10px}
 .modal-toggle-text{font-size:14px;color:var(--text-2)}
 .hidden{display:none}
 .modal-actions{display:flex;margin-top:16px;border-top:.5px solid var(--sep)}
@@ -241,15 +238,20 @@ body{
 .modal-actions button.danger{color:var(--red)} /* 删除确认按钮为红色 */
 .modal-actions button:active{background:rgba(0,0,0,.05)}
 
-/* ==================== 底部：导出 / 导入数据 ==================== */
-.data-actions{display:flex;gap:10px;margin-top:24px}
-.data-btn{
-  flex:1;border:none;border-radius:14px;
-  background:rgba(148,155,165,.10);color:var(--text-2);
-  font-size:14px;font-weight:600;padding:11px;cursor:pointer;
-  transition:transform .15s ease,opacity .15s;font-family:inherit;
+/* ==================== iOS 风格小开关 ==================== */
+.switch{
+  position:relative;flex-shrink:0;width:44px;height:26px;
+  background:rgba(120,120,128,.25);border-radius:999px;cursor:pointer;
+  transition:background .2s ease;
 }
-.data-btn:active{transform:scale(.98);opacity:.7}
+.switch.on{background:var(--green)}
+.switch::after{
+  content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;
+  background:#fff;border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);
+  transition:left .2s ease;
+}
+.switch.on::after{left:21px}
 
 /* ==================== 轻提示 Toast ==================== */
 .toast{
@@ -269,19 +271,24 @@ body{
   <header class="header">
     <div class="title-row">
       <h1 class="large-title">存</h1>
-      <button type="button" class="add-btn" id="add-btn" aria-label="新建站点">＋</button>
+      <div class="header-btns">
+        <!-- 眼睛：显示/隐藏卡片上的网址；图标由 JS 按状态切换 -->
+        <button type="button" class="icon-btn" id="showurl-btn" aria-label="显示或隐藏卡片上的网址"></button>
+        <button type="button" class="icon-btn" id="export-btn" aria-label="导出数据">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+        </button>
+        <button type="button" class="icon-btn" id="import-btn" aria-label="导入数据">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>
+        <button type="button" class="add-btn" id="add-btn" aria-label="新建站点">＋</button>
+      </div>
     </div>
     <p class="subtitle" id="subtitle">—</p>
   </header>
 
   <main id="card-list"><!-- 卡片由 JS 根据站点列表渲染 --></main>
 
-  <div class="data-actions">
-    <button type="button" class="data-btn" id="export-btn">导出数据</button>
-    <button type="button" class="data-btn" id="import-btn">导入数据</button>
-  </div>
-
-  <p class="footer-hint">点击卡片打开站点并签到 · 点状态徽章切换已签/未签 · 长按卡片可拖动排序</p>
+  <p class="footer-hint">点击卡片打开站点 · 点状态徽章手动签到 · 长按卡片可拖动排序</p>
 </div>
 
 <!-- iOS 风格弹窗：所有弹窗共用，只包含单行 <input>，不再有 textarea -->
@@ -291,9 +298,14 @@ body{
     <div class="modal-msg" id="modal-msg"></div>
     <input class="modal-input hidden" id="modal-input" type="text" autocomplete="off" spellcheck="false">
     <input class="modal-input hidden" id="modal-input2" type="text" autocomplete="off" spellcheck="false">
-    <div class="modal-toggle hidden" id="modal-toggle">
-      <span class="modal-toggle-text" id="modal-toggle-text">无签到站点</span>
-      <div class="switch" id="modal-switch" role="switch" aria-label="无签到"></div>
+    <input class="modal-input hidden" id="modal-input3" type="text" autocomplete="off" spellcheck="false">
+    <div class="modal-toggle hidden" id="mt-row1">
+      <span class="modal-toggle-text" id="mt-label1"></span>
+      <div class="switch" id="mt-switch1" role="switch"></div>
+    </div>
+    <div class="modal-toggle hidden" id="mt-row2">
+      <span class="modal-toggle-text" id="mt-label2"></span>
+      <div class="switch" id="mt-switch2" role="switch"></div>
     </div>
     <div class="modal-actions">
       <button type="button" id="modal-cancel">取消</button>
@@ -311,15 +323,17 @@ body{
  * ① 站点列表（初始配置 + 运行时管理）
  * ----------------------------------------------------------------
  * 下面的数组只作为【第一次打开页面】时的初始站点列表。
- * 之后的一切管理——新建、删除、长按拖动排序——都在界面上完成，
- * 并自动保存到 localStorage 的 apiPanel.sites，优先于这里的配置。
- * 备注 / 密钥在卡片详情里维护；想重新以这里的配置初始化：
- * 删除 localStorage 中的 apiPanel.sites 后刷新页面即可。
- * 注意：id 必须唯一，它是 localStorage 中数据的主键；界面上新建的
- * 站点会自动生成不冲突的 id。
- * 每个站点有两类地址，相互独立、互不影响：
- *   url —— 网址：点击卡片打开的站点、卡片名字下方显示（「修改网址」按钮）；
+ * 之后的一切管理——新建、删除、编辑、长按拖动排序——都在界面上
+ * 完成，并自动保存到 localStorage 的 apiPanel.sites，优先于这里的
+ * 配置。想重新以这里的配置初始化：删除 localStorage 中的
+ * apiPanel.sites 后刷新页面即可。
+ * 注意 1：id 必须唯一，它是 localStorage 中数据的主键；界面上新建
+ *         的站点会自动生成不冲突的 id。
+ * 注意 2：每个站点有两类地址，相互独立、互不影响：
+ *   url —— 网址：点击卡片打开的站点、卡片名字下方显示（「编辑站点」里改）；
  *   api —— URL：API 端点，新建站点时默认 = 网址 + /v1（详情区「URL」行）。
+ * 注意 3：nosign=true 表示无签到站点（不参与签到）；autoSign=false
+ *         表示点击卡片只打开、不自动签到。两者都可在「编辑站点」里改。
  * ================================================================ */
 const STORAGE_KEY_SITES = 'apiPanel.sites';
 
@@ -345,12 +359,14 @@ let sites = loadSites() || [
  *        [ { id:"site1", name:"清酒",
  *            url:"https://…"（网址：卡片点击打开、名字下显示）,
  *            api:"https://…/v1"（URL：API 端点，与网址独立）,
+ *            autoSign:true（点击卡片是否自动签到，缺省视为 true）,
  *            nosign:true（可选：无签到站点，不参与签到） }, … ]
- *   apiPanel.lastDate -> "2026-10-24"        最后一次使用的日期
+ *   apiPanel.lastDate -> "2026-10-26"        最后一次使用的日期
+ *   apiPanel.showURL  -> "0" | "1"           卡片上是否显示网址（默认 1）
  *   apiPanel.state    -> 每个站点的状态：
  *        {
  *          "site1": {
- *            signedDate: "2026-10-24" | null,       最近一次签到日期
+ *            signedDate: "2026-10-26" | null,       最近一次签到日期
  *            note:       "备注文字",                 备注
  *            keys:       [ { name:"密钥名称",        该站点的密钥列表
  *                            value:"sk-xxxx" } ]
@@ -361,6 +377,7 @@ let sites = loadSites() || [
  * ================================================================ */
 const STORAGE_KEY_STATE    = 'apiPanel.state';
 const STORAGE_KEY_LASTDATE = 'apiPanel.lastDate';
+const STORAGE_KEY_SHOWURL  = 'apiPanel.showURL';
 
 // 隐私模式 / 沙盒环境下 localStorage 可能不可用，降级为内存对象（页面关闭即丢失）
 const memoryStore = {};
@@ -370,6 +387,9 @@ function storageGet(key) {
 function storageSet(key, value) {
   try { localStorage.setItem(key, value); } catch (e) { memoryStore[key] = value; }
 }
+
+// 卡片上是否显示网址（右上角眼睛按钮切换，记忆在本地；默认显示）
+let showSiteURL = storageGet(STORAGE_KEY_SHOWURL) !== '0';
 
 // 站点列表（顺序）持久化
 function saveSites() {
@@ -474,6 +494,18 @@ const COPY_ICON =
   '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>' +
   '</svg>';
 
+// 眼睛图标两态：显示 / 隐藏卡片上的网址（右上角按钮用）
+const EYE_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>' +
+  '<circle cx="12" cy="12" r="3"></circle></svg>';
+const EYE_OFF_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>' +
+  '<line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
 // 密钥打码展示：保留首尾各几位，中间用 *** 代替（如 sk-ab***7890）
 function maskKey(v) {
   const s = String(v);
@@ -481,7 +513,7 @@ function maskKey(v) {
   return s.slice(0, 5) + '***' + s.slice(-4);
 }
 
-// 详情行：传 copyValue 时加「复制」按钮（与密钥同款样式、同一点击逻辑），
+// 详情行：传 copyValue 时加「复制」图标按钮（与密钥同款样式、同一点击逻辑），
 // 传 field 时加「修改」按钮；两个都传则同时显示（URL 行：复制 + 修改）
 function rowHTML(label, value, field, copyValue) {
   const empty = value === undefined || value === null || String(value).trim() === '';
@@ -537,13 +569,13 @@ function render() {
     card.className = 'card' + (expanded.has(site.id) ? ' expanded' : '');
     card.dataset.id = site.id;
 
-    // —— 主行：文字标题 + 域名 | 签到状态 | ··· 按钮 ——
+    // —— 主行：文字标题 + 域名（可用眼睛开关隐藏）| 备注标签 | 签到状态 | ··· ——
     const main = document.createElement('div');
     main.className = 'card-main';
     main.innerHTML =
       '<div class="site-info">' +
         '<div class="site-name">' + esc(site.name) + '</div>' +
-        '<div class="site-url">' + esc(shortURL(url)) + '</div>' +
+        (showSiteURL ? '<div class="site-url">' + esc(shortURL(url)) + '</div>' : '') +
         // 有备注时，在卡片上直接显示小标签（不用展开详情）
         (String(rec.note || '').trim() ? '<div class="note-tag">' + esc(rec.note) + '</div>' : '') +
       '</div>' +
@@ -556,7 +588,7 @@ function render() {
       '<button type="button" class="more-btn" aria-label="展开或收起详情">···</button>';
     card.appendChild(main);
 
-    // —— 详情区：地址 / 备注 / 密钥列表 / 底部操作（并排，避免臃肿） ——
+    // —— 详情区：URL / 备注 / 密钥列表 / 底部操作（并排，避免臃肿） ——
     const details = document.createElement('div');
     details.className = 'card-details';
     const inner = document.createElement('div');
@@ -564,16 +596,10 @@ function render() {
     inner.innerHTML =
       rowHTML('URL', api, 'api', api) +         // URL（API 端点）：显示 + 复制图标 + 行内修改，与网址独立
       rowHTML('备注', rec.note, 'note') +
-      // 无签到开关行：随时可以把站点设为无签到 / 恢复签到
-      '<div class="detail-row">' +
-        '<span class="detail-label">无签到</span>' +
-        '<span class="detail-value"></span>' +
-        '<div class="switch' + (site.nosign ? ' on' : '') + '" data-action="nosign" role="switch" aria-label="无签到"></div>' +
-      '</div>' +
       keysSectionHTML(site, rec) +
       '<div class="detail-actions">' +
-        // 原「取消今日签到」的位置改为修改网址；签到状态直接点徽章切换
-        '<button type="button" class="act-btn edit">修改网址</button>' +
+        // 综合编辑：站点名称 / 网址 / 备注 / 点击自动签到 / 无签到 都在这里改
+        '<button type="button" class="act-btn edit">编辑站点</button>' +
         '<button type="button" class="act-btn danger">删除站点</button>' +
       '</div>';
     details.appendChild(inner);
@@ -616,7 +642,7 @@ listEl.addEventListener('click', e => {
   // （a）点击「···」：展开 / 收起详情（不触发签到）
   if (e.target.closest('.more-btn')) { toggleExpand(card); return; }
 
-  // （b）点击「修改」：弹出修改弹窗（地址 / 备注）
+  // （b）点击「修改」：弹出修改弹窗（URL / 备注）
   const editBtn = e.target.closest('.row-btn');
   if (editBtn) { openEditDialog(site, editBtn.dataset.field); return; }
 
@@ -631,17 +657,14 @@ listEl.addEventListener('click', e => {
   // （e）点击「＋ 添加密钥」
   if (e.target.closest('.keys-add')) { openAddKeyDialog(site); return; }
 
-  // （e2）点击详情里的「无签到」开关：切换该站点是否参与签到
-  if (e.target.closest('.switch[data-action="nosign"]')) { toggleNoSign(site); return; }
-
   // （f）点击签到状态徽章：手动切换 已签 ⇄ 未签（不打开站点）；无签到站点给出提示
   if (e.target.closest('.status')) {
-    if (site.nosign) { toast('该站点已设为无签到，详情中可切换'); return; }
+    if (site.nosign) { toast('该站点已设为无签到，可在「编辑站点」中修改'); return; }
     toggleSign(site.id); return;
   }
 
-  // （g）点击「修改网址」：弹出网址修改弹窗（原「取消签到」的位置）
-  if (e.target.closest('.act-btn.edit')) { openEditDialog(site, 'url'); return; }
+  // （g）点击「编辑站点」：综合编辑（名称 / 网址 / 备注 / 自动签到 / 无签到）
+  if (e.target.closest('.act-btn.edit')) { openSiteEditor(site); return; }
 
   // （h）点击「删除站点」：二次确认后删除该站点
   if (e.target.closest('.act-btn.danger')) { openDeleteConfirm(site); return; }
@@ -649,7 +672,7 @@ listEl.addEventListener('click', e => {
   // （i）详情区的其余空白位置：什么都不做
   if (e.target.closest('.card-details')) return;
 
-  // （j）点击卡片主体：【关键逻辑】新窗口打开站点 + 立刻标记今日已签
+  // （j）点击卡片主体：新窗口打开网址（是否自动签到由站点设置决定）
   signSite(site);
 });
 
@@ -668,29 +691,21 @@ function toggleExpand(card) {
   }
 }
 
-/* 签到：先尝试新窗口打开站点（使用当前生效地址），再立刻把
- * signedDate 写成今天并刷新 UI。即使弹窗被浏览器拦截，签到状态
- * 也已生效（按需求：点击即标记）。无签到站点只打开、不标记。 */
+/* 点击卡片：先尝试新窗口打开网址，再按站点设置决定是否自动签到。
+ *  - nosign（无签到站点）：只打开、永不标记；
+ *  - autoSign=false（关闭点击即签）：只打开，签到请点状态徽章手动进行；
+ *  - 其余：立刻把 signedDate 写成今天（弹窗被拦截也不影响标记）。 */
 function signSite(site) {
   const win = window.open(getSiteURL(site), '_blank');
   if (win) win.opener = null; // 安全：切断新窗口对本页面的引用
   else toast('弹窗被拦截，请允许弹出窗口后重试');
-  if (site.nosign) return;    // 无签到站点：到此为止
+  if (site.nosign) return;              // 无签到站点：到此为止
+  if (site.autoSign === false) return;  // 关闭了点击即签：到此为止
 
   const rec = getStateOf(site.id);
   rec.signedDate = getToday(); // 标记今日已签（取消签到时会被清空）
   saveState();                 // 日期 + 状态写入 localStorage
   render();                    // 更新 UI：显示绿色 ✓已签
-}
-
-// 切换站点的「无签到」状态；开启时顺带清掉今日签到记录
-function toggleNoSign(site) {
-  site.nosign = !site.nosign;
-  if (site.nosign) getStateOf(site.id).signedDate = null;
-  saveSites();
-  saveState();
-  render();
-  toast(site.nosign ? '已设为无签到' : '已恢复签到');
 }
 
 // 点击状态徽章切换签到：已签 → 取消，未签 → 标记为今日已签（不打开站点）
@@ -850,36 +865,40 @@ function dragFrame() {
 }
 
 /* ================================================================
- * ⑥ iOS 风格弹窗（新建 / 修改 / 添加密钥 / 删除确认 / 导出导入 共用）
+ * ⑥ iOS 风格弹窗（新建 / 编辑 / 修改 / 添加密钥 / 确认 / 导出导入 共用）
  * ----------------------------------------------------------------
- * 所有弹窗统一只使用单行 <input>（最多两个），没有任何 textarea。
+ * 所有弹窗统一只使用单行 <input>（最多三个），没有任何 textarea；
+ * 可选携带最多两个开关行（点击自动签到 / 无签到）。
  * ================================================================ */
 const maskEl   = document.getElementById('modal-mask');
 const titleEl  = document.getElementById('modal-title');
 const msgEl    = document.getElementById('modal-msg');
-const inputEl  = document.getElementById('modal-input');
-const input2El = document.getElementById('modal-input2');
-const toggleRowEl = document.getElementById('modal-toggle');
-const toggleTextEl = document.getElementById('modal-toggle-text');
-const modalSwitchEl = document.getElementById('modal-switch');
+const inputEls = [
+  document.getElementById('modal-input'),
+  document.getElementById('modal-input2'),
+  document.getElementById('modal-input3')
+];
+const inputEl  = inputEls[0];
+const input2El = inputEls[1];
+const input3El = inputEls[2];
+const switchRows = [
+  { row: document.getElementById('mt-row1'), label: document.getElementById('mt-label1'), sw: document.getElementById('mt-switch1') },
+  { row: document.getElementById('mt-row2'), label: document.getElementById('mt-label2'), sw: document.getElementById('mt-switch2') }
+];
+const modalSwitches = switchRows.map(t => t.sw); // 读取开关状态用
 const okBtn    = document.getElementById('modal-ok');
 let dialogSave = null; // 点击"保存/确认"时执行的回调；返回 false 表示校验未通过，弹窗保持打开
 
-// 通用弹窗：inputs 为 [{value, placeholder, inputmode, readonly}]（最多两个），message 用于确认型弹窗
+// 通用弹窗：fields 为 [{value, placeholder, inputmode, readonly}]（最多三个），
+// toggles 为 [{label, value}]（最多两个），message 用于确认型弹窗
 function showModal(opts) {
   titleEl.textContent = opts.title;
   msgEl.textContent   = opts.message || '';
   msgEl.classList.toggle('show', !!opts.message);
-  const inputs = opts.inputs || [];
-  // 「无签到」开关行：仅传入 opts.toggle 的弹窗（新建站点）显示
-  const toggleConf = opts.toggle;
-  toggleRowEl.classList.toggle('hidden', !toggleConf);
-  if (toggleConf) {
-    toggleTextEl.textContent = toggleConf.label || '';
-    modalSwitchEl.classList.toggle('on', !!toggleConf.value);
-  }
-  [inputEl, input2El].forEach((el, i) => {
-    const conf = inputs[i];
+  const fields  = opts.fields  || [];
+  const toggles = opts.toggles || [];
+  inputEls.forEach((el, i) => {
+    const conf = fields[i];
     el.classList.toggle('hidden', !conf);
     if (conf) {
       el.value = conf.value || '';
@@ -888,72 +907,108 @@ function showModal(opts) {
       el.readOnly = !!conf.readonly;
     }
   });
+  switchRows.forEach((t, i) => {
+    const conf = toggles[i];
+    t.row.classList.toggle('hidden', !conf);
+    if (conf) {
+      t.label.textContent = conf.label || '';
+      t.sw.classList.toggle('on', !!conf.value);
+    }
+  });
   okBtn.textContent = opts.confirmLabel || '保存';
   okBtn.classList.toggle('danger', !!opts.danger);
   dialogSave = opts.onSave || null;
   maskEl.classList.add('show');
   // 等弹窗动画结束再聚焦；只读的导出输入框自动全选，方便直接复制
-  if (inputs.length) setTimeout(() => { inputEl.focus(); if (inputs[0].readonly) inputEl.select(); }, 240);
+  if (fields.length) setTimeout(() => { inputEl.focus(); if (fields[0].readonly) inputEl.select(); }, 240);
 }
 
 function closeModal() {
   maskEl.classList.remove('show');
-  inputEl.blur();
-  input2El.blur();
+  inputEls.forEach(el => el.blur());
   dialogSave = null;
 }
 
-// 修改弹窗：网址（site.url，卡片打开的站点）与 URL（site.api，API 端点）独立编辑
-function openEditDialog(site, field) {
+// 综合编辑站点：名称 / 网址 / 备注 + 点击自动签到 / 无签到 两个开关
+function openSiteEditor(site) {
   const rec = getStateOf(site.id);
-  const isNote = field === 'note';
-  const isAPI  = field === 'api';
-
   showModal({
-    title: isNote ? '修改备注' : isAPI ? '修改 URL' : '修改网址',
-    inputs: [isNote
-      ? { value: rec.note, placeholder: '输入备注' }
-      : isAPI
-        ? { value: getSiteAPI(site), placeholder: 'https://…/v1', inputmode: 'url' }
-        : { value: site.url, placeholder: 'https://…', inputmode: 'url' }],
+    title: '编辑站点',
+    fields: [
+      { value: site.name, placeholder: '站点名称' },
+      { value: site.url, placeholder: 'https://（网址）', inputmode: 'url' },
+      { value: rec.note, placeholder: '备注（可选）' }
+    ],
+    toggles: [
+      { label: '点击卡片自动签到', value: site.autoSign !== false },
+      { label: '无签到站点', value: !!site.nosign }
+    ],
     onSave: () => {
-      const v = inputEl.value.trim();
-      if (isNote) {
-        rec.note = v;
-        saveState();
-        render();
-        toast('已保存');
-        return;
-      }
-      if (!v) {
-        // 网址是必填；URL 清空保存 = 恢复默认（网址 + /v1）
-        if (isAPI) { site.api = ''; saveSites(); render(); toast('已恢复默认 URL'); return; }
-        toast('请输入网址');
-        return false; // 校验不通过，弹窗保持打开
-      }
-      if (isAPI) site.api = normalizeURL(v);
-      else       site.url = normalizeURL(v);
-      saveSites(); // 网址 / URL 都直接保存在站点上
+      const name = inputEl.value.trim();
+      const url  = input2El.value.trim();
+      const note = input3El.value.trim();
+      if (!name) { toast('请填写站点名称'); return false; } // 校验不通过，弹窗保持打开
+      if (!url)  { toast('请填写网址'); return false; }
+      site.name = name;
+      site.url  = normalizeURL(url); // 只改网址，URL（API 端点）不受影响
+      rec.note  = note;
+      site.autoSign = modalSwitches[0].classList.contains('on');
+      const nosign  = modalSwitches[1].classList.contains('on');
+      if (nosign && !site.nosign) rec.signedDate = null; // 设为无签到时清掉当日签到
+      site.nosign = nosign;
+      saveSites();
+      saveState();
       render();
       toast('已保存');
     }
   });
 }
 
-// 新建站点：填写名称 + 地址
+// 修改弹窗：URL（site.api，API 端点）与备注独立编辑
+function openEditDialog(site, field) {
+  const rec = getStateOf(site.id);
+  const isAPI = field === 'api';
+  showModal({
+    title: isAPI ? '修改 URL' : '修改备注',
+    fields: [isAPI
+      ? { value: getSiteAPI(site), placeholder: 'https://…/v1', inputmode: 'url' }
+      : { value: rec.note, placeholder: '输入备注' }],
+    onSave: () => {
+      const v = inputEl.value.trim();
+      if (isAPI) {
+        // URL 清空保存 = 恢复默认（网址 + /v1）；只改 URL，网址不受影响
+        site.api = v ? normalizeURL(v) : '';
+        saveSites();
+        render();
+        toast(v ? '已保存' : '已恢复默认 URL');
+      } else {
+        rec.note = v;
+        saveState();
+        render();
+        toast('已保存');
+      }
+    }
+  });
+}
+
+// 新建站点：名称 + 网址 + 备注（可选），点击自动签到 / 无签到 开关
 function openCreateDialog() {
   showModal({
     title: '新建站点',
-    inputs: [
+    fields: [
       { value: '', placeholder: '站点名称' },
-      { value: '', placeholder: 'https://（网址）', inputmode: 'url' }
+      { value: '', placeholder: 'https://（网址）', inputmode: 'url' },
+      { value: '', placeholder: '备注（可选）' }
     ],
-    // 「无签到」开关：默认关闭（正常签到）；开启后该站点不参与签到
-    toggle: { label: '无签到站点', value: false },
+    toggles: [
+      { label: '点击卡片自动签到', value: true },  // 默认点击即签
+      { label: '无签到站点', value: false }         // 默认正常签到
+    ],
     confirmLabel: '添加',
     onSave: () => {
       const name   = inputEl.value.trim();
       const rawURL = input2El.value.trim();
+      const note   = input3El.value.trim();
       if (!name)   { toast('请填写站点名称'); return false; } // 校验不通过，弹窗保持打开
       if (!rawURL) { toast('请填写网址'); return false; }
       const url = normalizeURL(rawURL);                     // 网址原样保存（不加 /v1）
@@ -961,9 +1016,12 @@ function openCreateDialog() {
       const id = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); // 自动生成唯一 id
       sites.push({
         id: id, name: name, url: url, api: api,
-        nosign: modalSwitchEl.classList.contains('on')      // 读取开关状态
+        autoSign: modalSwitches[0].classList.contains('on'), // 点击即签开关
+        nosign:   modalSwitches[1].classList.contains('on')  // 无签到开关
       });
+      if (note) getStateOf(id).note = note;                  // 备注存进站点状态
       saveSites();
+      saveState();
       render();
       toast('已添加「' + name + '」');
       setTimeout(() => { // 滚动到底部，让新卡片进入视野
@@ -979,7 +1037,7 @@ function openAddKeyDialog(site) {
   const rec = getStateOf(site.id);
   showModal({
     title: '添加密钥',
-    inputs: [
+    fields: [
       { value: '', placeholder: '密钥名称（如：主力 Key）' },
       { value: '', placeholder: '密钥内容（如：sk-xxxx）' }
     ],
@@ -1060,9 +1118,10 @@ function openDeleteConfirm(site) {
 /* ================================================================
  * 导出 / 导入数据
  * ----------------------------------------------------------------
- * 导出：把站点列表（含顺序）、每个站点的签到日期 / 备注 / 自定义
- *       地址 / 密钥列表、最后使用日期，打包成一份单行 JSON 文本，
- *       放进只读的单行输入框（自动全选），点"复制"写入剪贴板。
+ * 导出：把站点列表（含顺序、网址、URL、自动签到 / 无签到设置）、
+ *       每个站点的签到日期 / 备注 / 密钥列表、最后使用日期，打包成
+ *       一份单行 JSON 文本，放进只读的单行输入框（自动全选），
+ *       点"复制"写入剪贴板。
  * 导入：粘贴之前导出的 JSON，校验通过后【整体替换】当前数据；
  *       若备份的日期早于今天，会按"跨天"规则清掉过期签到状态。
  * ================================================================ */
@@ -1079,9 +1138,9 @@ function buildExportJSON() {
   });
   return JSON.stringify({
     app: 'api-panel',                                        // 标识数据来源，导入时校验用
-    version: 3,
+    version: 4,
     exportedAt: new Date().toLocaleString(),
-    sites: sites,                                            // 站点列表（含顺序、网址 url 与 API 端点 api）
+    sites: sites,                                            // 站点列表（含顺序与全部设置）
     state: cleanState,                                       // 各站点的签到 / 备注 / 密钥
     lastDate: storageGet(STORAGE_KEY_LASTDATE) || getToday() // 最后使用日期
   });
@@ -1092,7 +1151,7 @@ function openExportDialog() {
   const json = buildExportJSON();
   showModal({
     title: '导出数据',
-    inputs: [{ value: json, readonly: true }],
+    fields: [{ value: json, readonly: true }],
     confirmLabel: '复制',
     onSave: () => {
       const ok = fallbackCopy(inputEl.value);
@@ -1109,7 +1168,7 @@ function openExportDialog() {
 function openImportDialog() {
   showModal({
     title: '导入数据',
-    inputs: [{ value: '', placeholder: '粘贴之前导出的 JSON 文本…' }],
+    fields: [{ value: '', placeholder: '粘贴之前导出的 JSON 文本…' }],
     confirmLabel: '导入',
     onSave: () => {
       const raw = inputEl.value.trim();
@@ -1123,7 +1182,7 @@ function openImportDialog() {
         return false;
       }
       // 清洗站点列表：必须有 id/name，id 重复的只保留第一个。
-      // 兼容旧版备份（v2 及更早）：网址曾存在 state[k].url 里、且没有 api 字段
+      // 兼容旧版备份（v3 及更早）：网址曾存在 state[k].url 里、且没有 api 字段
       const seen = new Set();
       const clean = [];
       data.sites.forEach(s => {
@@ -1131,13 +1190,14 @@ function openImportDialog() {
           seen.add(String(s.id));
           const st = data.state[s.id] || {};
           let u = normalizeURL(String(s.url || ''));
-          if (st.url) u = normalizeURL(String(st.url));     // 旧版：网址覆盖值存在 state 里
+          if (st.url) u = normalizeURL(String(st.url));          // 旧版：网址覆盖值存在 state 里
           clean.push({
             id: String(s.id),
             name: String(s.name),
             url: u,
             api: s.api ? normalizeURL(String(s.api)) : withV1(u), // 无 api 的老数据按 网址+/v1 生成
-            nosign: !!s.nosign                                 // 无签到标记一并保留
+            autoSign: s.autoSign !== false,                       // 缺省视为开启点击即签
+            nosign: !!s.nosign                                    // 无签到标记一并保留
           });
         }
       });
@@ -1173,15 +1233,29 @@ document.getElementById('add-btn').addEventListener('click', openCreateDialog);
 document.getElementById('export-btn').addEventListener('click', openExportDialog);
 document.getElementById('import-btn').addEventListener('click', openImportDialog);
 
+// 眼睛按钮：切换卡片上是否显示网址（记忆在 localStorage）
+const showurlBtn = document.getElementById('showurl-btn');
+function updateEyeBtn() {
+  showurlBtn.innerHTML = showSiteURL ? EYE_ICON : EYE_OFF_ICON;
+  showurlBtn.classList.toggle('dim', !showSiteURL);
+  showurlBtn.setAttribute('aria-label', showSiteURL ? '隐藏卡片上的网址' : '显示卡片上的网址');
+}
+showurlBtn.addEventListener('click', () => {
+  showSiteURL = !showSiteURL;
+  storageSet(STORAGE_KEY_SHOWURL, showSiteURL ? '1' : '0');
+  updateEyeBtn();
+  render();
+});
+
 okBtn.addEventListener('click', () => {
   if (!dialogSave) { closeModal(); return; }
   if (dialogSave() === false) return; // 校验未通过，弹窗保持打开
   closeModal();
 });
 document.getElementById('modal-cancel').addEventListener('click', closeModal);
-modalSwitchEl.addEventListener('click', () => modalSwitchEl.classList.toggle('on')); // 开关自身切换
+modalSwitches.forEach(sw => sw.addEventListener('click', () => sw.classList.toggle('on'))); // 开关自身切换
 maskEl.addEventListener('click', e => { if (e.target === maskEl) closeModal(); }); // 点遮罩关闭
-[inputEl, input2El].forEach(el => el.addEventListener('keydown', e => {
+inputEls.forEach(el => el.addEventListener('keydown', e => {
   if (e.key === 'Enter')  okBtn.click(); // 回车 = 保存
   if (e.key === 'Escape') closeModal();  // Esc = 取消
 }));
@@ -1261,7 +1335,8 @@ saveState();    //（迁移后把清理过的状态也写回）
 saveSites();    // 3. 把当前站点列表持久化（首次运行即写入，之后以界面管理为准）
 dailyReset();   // 4. 每日自动刷新（关键）：跨天则清空所有签到状态
 render();       // 5. 渲染卡片列表
-initPWA();      // 6. 生成 PWA 图标与 manifest
+updateEyeBtn(); // 6. 按本地设置设置眼睛按钮的初始状态
+initPWA();      // 7. 生成 PWA 图标与 manifest
 
 // 面板一直开着跨过凌晨的情况：从后台切回前台时再检查一次日期
 document.addEventListener('visibilitychange', () => {
