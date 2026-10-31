@@ -47,8 +47,16 @@ body{
   -webkit-font-smoothing:antialiased;
   touch-action:manipulation; /* 去掉 iOS 上双击缩放/点击延迟 */
 }
-/* 底部留出 tab 栏的高度 */
-.app{max-width:640px;margin:0 auto;padding:0 16px calc(78px + env(safe-area-inset-bottom,0px))}
+/* 底部留出 tab 栏的高度；min-height 保证列表很短时页面也撑满视口，
+ * 避免切换界面时页面高度变化导致底部 tab 栏看起来在移动 */
+.app{
+  max-width:640px;margin:0 auto;
+  padding:0 16px calc(78px + env(safe-area-inset-bottom,0px));
+  min-height:calc(100vh - 52px - env(safe-area-inset-bottom,0px));
+  min-height:calc(100dvh - 52px - env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;
+}
+#card-list{flex:1 0 auto} /* 让列表区域撑开，footer 提示贴近底部 */
 
 /* ==================== 顶部大标题 + 右上角按钮组 ==================== */
 .header{padding-top:calc(env(safe-area-inset-top,0px) + 30px);margin-bottom:20px}
@@ -590,18 +598,39 @@ function render() {
   else                     renderSignList();
 
   // 副标题
+  updateSubtitle();
+}
+
+// 只更新副标题（日期 + 统计），不动卡片列表
+function updateSubtitle() {
   const d = new Date();
   const weeks = ['日','一','二','三','四','五','六'];
   if (activeTab === 'fav') {
     subtitleEl.textContent = '共 ' + links.length + ' 个收藏';
-  } else {
-    const signedCount = sites.filter(s => !s.nosign && isSigned(getStateOf(s.id))).length;
-    const nosignCount = sites.filter(s => s.nosign).length;
-    subtitleEl.textContent =
-      (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + weeks[d.getDay()] +
-      ' · 共 ' + sites.length + ' 个站点，已签 ' + signedCount + ' 个' +
-      (nosignCount ? ' · ' + nosignCount + ' 个无签到' : '');
+    return;
   }
+  const signedCount = sites.filter(s => !s.nosign && isSigned(getStateOf(s.id))).length;
+  const nosignCount = sites.filter(s => s.nosign).length;
+  subtitleEl.textContent =
+    (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + weeks[d.getDay()] +
+    ' · 共 ' + sites.length + ' 个站点，已签 ' + signedCount + ' 个' +
+    (nosignCount ? ' · ' + nosignCount + ' 个无签到' : '');
+}
+
+// 只更新某张卡片的状态徽章与副标题，不整表重绘——
+// 避免点卡片签到 / 切换徽章时页面滚动位置丢失
+function updateBadge(siteId) {
+  const site = sites.find(s => s.id === siteId);
+  if (!site) return;
+  const rec  = getStateOf(siteId);
+  const card = listEl.querySelector('.card[data-id="' + siteId + '"]');
+  if (card) {
+    const badge = card.querySelector('.status');
+    if (site.nosign)        { badge.className = 'status nosign';   badge.textContent = '无签到'; }
+    else if (isSigned(rec)) { badge.className = 'status signed';   badge.textContent = '✓已签'; }
+    else                    { badge.className = 'status unsigned'; badge.textContent = '未签'; }
+  }
+  updateSubtitle();
 }
 
 // 签到页：完整功能卡片
@@ -812,7 +841,7 @@ function signSite(site) {
   const rec = getStateOf(site.id);
   rec.signedDate = getToday(); // 标记今日已签（取消签到时会被清空）
   saveState();                 // 日期 + 状态写入 localStorage
-  render();                    // 更新 UI：显示绿色 ✓已签
+  updateBadge(site.id);        // 只更新这张卡的徽章，不整表重绘（保住滚动位置）
 }
 
 // 收藏页点卡片：新窗口打开网址
@@ -828,12 +857,12 @@ function toggleSign(siteId) {
   if (isSigned(rec)) {
     rec.signedDate = null;
     saveState();
-    render();
+    updateBadge(siteId); // 只更新徽章，不整表重绘（保住滚动位置）
     toast('已取消签到');
   } else {
     rec.signedDate = getToday();
     saveState();
-    render();
+    updateBadge(siteId);
     toast('已标记为已签');
   }
 }
