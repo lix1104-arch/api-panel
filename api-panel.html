@@ -36,9 +36,11 @@
   --radius:  20px;                    /* 卡片圆角（大圆角，弱化硬朗感） */
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* 整页为固定外壳：文档本身不滚动 → 浏览器工具栏不再收起/展开，
+ * 底部 tab 栏因此纹丝不动；卡片列表的滚动发生在 #card-list 内部 */
 html{height:100%;background:var(--bg)}
 body{
-  min-height:100%;
+  height:100%;display:flex;flex-direction:column;overflow:hidden;
   /* ui-rounded：iOS 上自动使用 SF 圆体，数字与英文更柔和；其余平台回退到系统字体 */
   font-family:ui-rounded,-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   /* 极浅的顶部渐变，让背景不再是"一块死板灰" */
@@ -47,19 +49,14 @@ body{
   -webkit-font-smoothing:antialiased;
   touch-action:manipulation; /* 去掉 iOS 上双击缩放/点击延迟 */
 }
-/* 底部留出 tab 栏的高度；min-height 保证列表很短时页面也撑满视口，
- * 避免切换界面时页面高度变化导致底部 tab 栏看起来在移动 */
+/* 外壳布局：头部固定在顶部、列表区域内部滚动、footer 提示随内容 */
 .app{
-  max-width:640px;margin:0 auto;
-  padding:0 16px calc(78px + env(safe-area-inset-bottom,0px));
-  min-height:calc(100vh - 52px - env(safe-area-inset-bottom,0px));
-  min-height:calc(100dvh - 52px - env(safe-area-inset-bottom,0px));
-  display:flex;flex-direction:column;
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  max-width:640px;margin:0 auto;width:100%;padding:0;
 }
-#card-list{flex:1 0 auto} /* 让列表区域撑开，footer 提示贴近底部 */
 
 /* ==================== 顶部大标题 + 右上角按钮组 ==================== */
-.header{padding-top:calc(env(safe-area-inset-top,0px) + 30px);margin-bottom:20px}
+.header{flex-shrink:0;padding:calc(env(safe-area-inset-top,0px) + 30px) 16px 0;margin-bottom:16px}
 .title-row{display:flex;align-items:center;justify-content:space-between}
 .large-title{font-size:32px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
 .header-btns{display:flex;align-items:center;gap:8px}
@@ -85,9 +82,16 @@ body{
 .subtitle{margin-top:7px;font-size:14px;color:var(--text-2);letter-spacing:.1px}
 
 /* ==================== 卡片列表 ==================== */
-#card-list{display:flex;flex-direction:column;gap:14px;animation:fadeUp .4s ease}
+/* 列表区域：内部滚动（文档本身不滚动，底部 tab 栏稳定不动） */
+#card-list{
+  flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:14px;
+  padding:2px 16px 14px;
+  animation:fadeUp .4s ease;
+}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .card{
+  flex-shrink:0; /* 滚动区域内的卡片保持自然高度，不被压缩 */
   background:var(--card);
   border-radius:var(--radius);
   /* 两层弥散阴影代替一层硬阴影：更轻、更柔、有空气感 */
@@ -120,10 +124,9 @@ body{
   background:rgba(148,155,165,.10);color:var(--text-2);
 }
 .status{flex-shrink:0;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;cursor:pointer;transition:transform .15s ease}
-.status:not(.nosign):active{transform:scale(.92)} /* 状态徽章可点击切换，给个轻按压反馈 */
+.status:active{transform:scale(.92)} /* 状态徽章可点击切换，给个轻按压反馈 */
 .status.signed{color:var(--green);background:rgba(95,174,114,.12)}
 .status.unsigned{color:var(--text-2);background:rgba(148,155,165,.10);font-weight:500}
-.status.nosign{color:var(--text-3);background:rgba(148,155,165,.07);font-weight:500;cursor:default}
 .more-btn{
   flex-shrink:0;width:32px;height:32px;border:none;border-radius:50%;
   background:#eef1f5;color:#a7aeb8;
@@ -200,11 +203,11 @@ body{
 .empty-tip{padding:22px 16px;text-align:center;color:var(--text-2);font-size:14px}
 
 /* 底部提示 */
-.footer-hint{margin-top:18px;text-align:center;font-size:12px;color:var(--text-3)}
+.footer-hint{flex-shrink:0;padding:0 16px;margin-top:12px;text-align:center;font-size:12px;color:var(--text-3)}
 
 /* ==================== 底部 tab 栏（签到 / 收藏 两个界面切换） ==================== */
 .tabbar{
-  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  flex-shrink:0;z-index:50;
   display:flex;
   background:rgba(248,250,252,.92);
   -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
@@ -283,7 +286,7 @@ body{
 
 /* ==================== 轻提示 Toast ==================== */
 .toast{
-  position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom,0px));z-index:200;
+  position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:200;
   transform:translateX(-50%) translateY(10px);
   background:rgba(62,68,76,.92);color:#fff;
   font-size:14px;padding:9px 18px;border-radius:999px;
@@ -625,10 +628,11 @@ function updateBadge(siteId) {
   const rec  = getStateOf(siteId);
   const card = listEl.querySelector('.card[data-id="' + siteId + '"]');
   if (card) {
-    const badge = card.querySelector('.status');
-    if (site.nosign)        { badge.className = 'status nosign';   badge.textContent = '无签到'; }
-    else if (isSigned(rec)) { badge.className = 'status signed';   badge.textContent = '✓已签'; }
-    else                    { badge.className = 'status unsigned'; badge.textContent = '未签'; }
+    const badge = card.querySelector('.status'); // 无签到站点没有徽章，跳过
+    if (badge) {
+      if (isSigned(rec))  { badge.className = 'status signed';   badge.textContent = '✓已签'; }
+      else                { badge.className = 'status unsigned'; badge.textContent = '未签'; }
+    }
   }
   updateSubtitle();
 }
@@ -661,9 +665,9 @@ function renderSignList() {
         // 有备注时，在卡片上直接显示小标签（不用展开详情）
         (String(rec.note || '').trim() ? '<div class="note-tag">' + esc(rec.note) + '</div>' : '') +
       '</div>' +
-      // 无签到站点显示灰色「无签到」徽章（不可点）；否则正常 已签/未签
+      // 无签到站点不显示任何签到状态；其余显示 已签/未签（可点切换）
       (site.nosign
-        ? '<div class="status nosign">无签到</div>'
+        ? ''
         : signed
           ? '<div class="status signed">✓已签</div>'
           : '<div class="status unsigned">未签</div>') +
@@ -789,11 +793,8 @@ listEl.addEventListener('click', e => {
   // （e）点击「＋ 添加密钥」（仅签到页）
   if (e.target.closest('.keys-add')) { openAddKeyDialog(item); return; }
 
-  // （f）点击签到状态徽章：手动切换 已签 ⇄ 未签（不打开站点）；无签到站点给出提示
-  if (e.target.closest('.status')) {
-    if (item.nosign) { toast('该站点已设为无签到，可在「编辑站点」中修改'); return; }
-    toggleSign(item.id); return;
-  }
+  // （f）点击签到状态徽章：手动切换 已签 ⇄ 未签（不打开站点；无签到站点没有徽章）
+  if (e.target.closest('.status')) { toggleSign(site.id); return; }
 
   // （g）点击「编辑」：综合编辑（签到页含自动签到 / 无签到开关）
   if (e.target.closest('.act-btn.edit')) {
@@ -951,9 +952,10 @@ listEl.addEventListener('contextmenu', e => {
   if (e.target.closest('.card-main')) e.preventDefault();
 });
 
-// 鼠标滚轮在拖动中滚动页面时，同步补偿卡片位置
+// 鼠标滚轮在拖动中滚动列表区域时，同步补偿卡片位置
 window.addEventListener('wheel', e => {
   if (drag && drag.started) {
+    listEl.scrollTop += e.deltaY;
     drag.startY -= e.deltaY;
     applyDragTransform();
     reorderDuringDrag();
@@ -989,16 +991,16 @@ function shiftCard(domMove) {
   applyDragTransform();
 }
 
-// 拖到屏幕上下边缘时自动滚动列表
+// 拖到列表区域上下边缘时自动滚动（滚动发生在区域内部）
 function dragFrame() {
   if (!drag || !drag.started) return;
-  const vh = window.innerHeight;
+  const rect = listEl.getBoundingClientRect();
   let scroll = 0;
-  if (drag.curY < 90)                        scroll = -Math.min(12, (90 - drag.curY) / 3);
-  else if (drag.curY > vh - 90)              scroll =  Math.min(12, (drag.curY - (vh - 90)) / 3);
+  if (drag.curY < rect.top + 60)          scroll = -Math.min(12, (rect.top + 60 - drag.curY) / 3);
+  else if (drag.curY > rect.bottom - 60)  scroll =  Math.min(12, (drag.curY - (rect.bottom - 60)) / 3);
   if (scroll) {
-    window.scrollBy(0, scroll);
-    drag.startY -= scroll; // 页面滚动后补偿，卡片继续贴着手指
+    listEl.scrollTop += scroll; // 列表区域内部滚动
+    drag.startY -= scroll;      // 滚动后补偿，卡片继续贴着手指
     applyDragTransform();
     reorderDuringDrag();
   }
@@ -1495,7 +1497,7 @@ tabbarEl.addEventListener('click', e => {
   expanded.clear(); // 切换界面时收起所有展开的详情
   updateTabbar();
   render();
-  window.scrollTo(0, 0);
+  listEl.scrollTop = 0; // 滚动发生在列表区域内部
 });
 
 okBtn.addEventListener('click', () => {
