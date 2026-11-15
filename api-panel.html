@@ -803,7 +803,7 @@ listEl.addEventListener('click', e => {
   if (e.target.closest('.keys-add')) { openAddKeyDialog(item); return; }
 
   // （f）点击签到状态徽章：手动切换 已签 ⇄ 未签（不打开站点；无签到站点没有徽章）
-  if (e.target.closest('.status')) { toggleSign(site.id); return; }
+  if (e.target.closest('.status')) { toggleSign(item.id); return; }
 
   // （g）点击「编辑」：综合编辑（签到页含自动签到 / 无签到开关）
   if (e.target.closest('.act-btn.edit')) {
