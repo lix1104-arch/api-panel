@@ -15,7 +15,7 @@
 <!-- 添加到主屏幕后显示的 App 名称 -->
 <meta name="apple-mobile-web-app-title" content="存">
 <!-- 状态栏 / 浏览器主题色 -->
-<meta name="theme-color" content="#f3f5f8">
+<meta name="theme-color" content="#f8fafc">
 <!-- manifest 与图标由 JS 动态生成（data URL 内联，单文件零外部依赖），见 script 中的 initPWA() -->
 <link rel="manifest" id="manifest-link">
 <link rel="apple-touch-icon" id="apple-touch-icon" sizes="180x180">
@@ -34,11 +34,18 @@
   --red:     #dd7a72;                 /* 柔和红（删除） */
   --sep:     rgba(60,60,67,.08);      /* 发丝分割线（极淡） */
   --radius:  20px;                    /* 卡片圆角（大圆角，弱化硬朗感） */
+  --tabbar-safe: 10px;                /* tab 栏底部安全区间距（下方 @supports 内按设备真实值钳制） */
+}
+/* 真实安全区间距：至少 10px、最多 40px——个别内置浏览器会上报过大的值，
+ * 不钳制的话 tab 栏下方会出现一大截空白 */
+@supports (padding-bottom: max(10px, env(safe-area-inset-bottom, 0px))) {
+  :root{ --tabbar-safe: max(10px, min(env(safe-area-inset-bottom, 0px), 40px)); }
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* 整页为固定外壳：文档本身不滚动 → 浏览器工具栏不再收起/展开，
- * 底部 tab 栏因此纹丝不动；卡片列表的滚动发生在 #card-list 内部 */
-html{height:100%;background:var(--bg)}
+ * tab 栏 fixed 定位因此纹丝不动；卡片列表的滚动发生在 #card-list 内部。
+ * html 画布与 tab 栏同色：个别浏览器底部若留出空隙，会与 tab 栏融为一体 */
+html{height:100%;background:#f8fafc}
 body{
   height:100%;display:flex;flex-direction:column;overflow:hidden;
   /* ui-rounded：iOS 上自动使用 SF 圆体，数字与英文更柔和；其余平台回退到系统字体 */
@@ -52,7 +59,8 @@ body{
 /* 外壳布局：头部固定在顶部、列表区域内部滚动、footer 提示随内容 */
 .app{
   flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;
-  max-width:640px;margin:0 auto;width:100%;padding:0;
+  max-width:640px;margin:0 auto;width:100%;
+  padding:0 0 calc(58px + var(--tabbar-safe)); /* 底部留出 fixed tab 栏的高度 */
 }
 
 /* ==================== 顶部大标题 + 右上角按钮组 ==================== */
@@ -206,13 +214,14 @@ body{
 .footer-hint{flex-shrink:0;padding:0 16px;margin-top:12px;text-align:center;font-size:12px;color:var(--text-3)}
 
 /* ==================== 底部 tab 栏（签到 / 收藏 两个界面切换） ==================== */
+/* fixed 贴住可绘制区域最底部；文档不滚动 → 不会漂移。
+ * 背景改为不透明并与 html 画布同色，底部安全区钳制在 10~40px */
 .tabbar{
-  flex-shrink:0;z-index:50;
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
   display:flex;
-  background:rgba(248,250,252,.92);
-  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  background:#f8fafc;
   border-top:.5px solid var(--sep);
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-bottom:var(--tabbar-safe);
 }
 .tab{
   flex:1;border:none;background:transparent;cursor:pointer;
@@ -286,7 +295,7 @@ body{
 
 /* ==================== 轻提示 Toast ==================== */
 .toast{
-  position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:200;
+  position:fixed;left:50%;bottom:calc(62px + var(--tabbar-safe));z-index:200;
   transform:translateX(-50%) translateY(10px);
   background:rgba(62,68,76,.92);color:#fff;
   font-size:14px;padding:9px 18px;border-radius:999px;
@@ -1563,8 +1572,8 @@ function initPWA() {
       short_name: '存',
       display: 'standalone',
       start_url: '.',
-      background_color: '#f3f5f8',
-      theme_color: '#f3f5f8',
+      background_color: '#f8fafc',
+      theme_color: '#f8fafc',
       icons: [{ src: iconURL, sizes: '180x180', type: 'image/png' }]
     };
     document.getElementById('manifest-link').href =
